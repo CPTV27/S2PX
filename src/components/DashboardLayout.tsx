@@ -1,0 +1,141 @@
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import {
+    LayoutDashboard,
+    Users,
+    MessageSquareDashed,
+    FolderKanban,
+    BarChart3,
+    BookOpen,
+    SlidersHorizontal,
+    Settings,
+    LogOut,
+    Sparkles,
+    ScanLine,
+    BookOpenCheck,
+    HardDrive,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { ChatWidget } from './ChatWidget';
+
+const navItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Users, label: 'Pipeline', path: '/dashboard/pipeline' },
+    { icon: MessageSquareDashed, label: 'AI Quotes', path: '/dashboard/quotes' },
+    { icon: FolderKanban, label: 'Projects', path: '/dashboard/projects' },
+    { icon: BarChart3, label: 'Revenue', path: '/dashboard/revenue' },
+    { icon: BookOpen, label: 'Knowledge Base', path: '/dashboard/knowledge' },
+    { icon: SlidersHorizontal, label: 'Pricing Rules', path: '/dashboard/pricing-rules' },
+    { icon: BookOpenCheck, label: 'Notebook CPQ', path: '/dashboard/notebook-cpq' },
+    { icon: HardDrive, label: 'Cloud Storage', path: '/dashboard/storage' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+] as const;
+
+export function DashboardLayout() {
+    const location = useLocation();
+
+    return (
+        <div className="min-h-screen bg-s2p-bg text-s2p-fg flex">
+            {/* Sidebar */}
+            <motion.aside
+                initial={{ x: -100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="w-20 lg:w-64 bg-s2p-sidebar-bg text-s2p-sidebar-fg border-r border-slate-700/50 flex flex-col fixed h-full z-50"
+            >
+                {/* Logo */}
+                <div className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-700/50">
+                    <div className="w-10 h-10 bg-s2p-primary rounded-xl flex items-center justify-center text-white">
+                        <ScanLine size={22} />
+                    </div>
+                    <div className="hidden lg:block ml-3">
+                        <span className="font-bold text-lg text-white tracking-tight">Scan2Plan</span>
+                        <span className="block text-[10px] uppercase tracking-widest text-slate-400 font-mono">Studio</span>
+                    </div>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 py-6 space-y-1 px-2 lg:px-3">
+                    {navItems.map((item) => {
+                        const isExternal = 'external' in item && item.external;
+                        const isActive = !isExternal && (
+                            location.pathname === item.path ||
+                            (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+                        );
+                        const Icon = item.icon;
+                        const classes = cn(
+                            "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
+                            isActive
+                                ? "bg-s2p-primary text-white shadow-lg shadow-blue-500/20"
+                                : "text-slate-400 hover:bg-s2p-sidebar-hover hover:text-white"
+                        );
+
+                        if (isExternal) {
+                            return (
+                                <a
+                                    key={item.path}
+                                    href={item.path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={classes}
+                                >
+                                    <Icon size={20} className="min-w-[20px]" />
+                                    <span className="hidden lg:block ml-3 text-sm font-medium">{item.label}</span>
+                                </a>
+                            );
+                        }
+
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={classes}
+                            >
+                                <Icon size={20} className="min-w-[20px]" />
+                                <span className="hidden lg:block ml-3 text-sm font-medium">{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Footer */}
+                <div className="p-3 border-t border-slate-700/50">
+                    <button className="flex items-center justify-center lg:justify-start w-full px-3 py-2.5 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800/50">
+                        <LogOut size={18} />
+                        <span className="hidden lg:block ml-3 text-xs font-mono uppercase tracking-wider">Logout</span>
+                    </button>
+                </div>
+            </motion.aside>
+
+            {/* Main Content */}
+            <main className="flex-1 ml-20 lg:ml-64 min-h-screen">
+                {/* Header */}
+                <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-s2p-border px-8 py-4 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xs font-mono text-s2p-muted uppercase tracking-widest">Scan2Plan OS</h2>
+                        <h1 className="text-xl font-semibold text-s2p-fg">Operations Center</h1>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-xs font-mono text-s2p-muted bg-s2p-secondary px-3 py-1.5 rounded-lg">
+                            <Sparkles size={12} className="text-s2p-primary" />
+                            <span>Gemini 2.5</span>
+                        </div>
+                        <div className="text-right hidden md:block">
+                            <div className="text-sm font-semibold">Chase Pierson</div>
+                            <div className="text-xs text-s2p-muted">Administrator</div>
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-s2p-primary/10 border border-s2p-border flex items-center justify-center text-s2p-primary font-bold text-sm">
+                            CP
+                        </div>
+                    </div>
+                </header>
+
+                {/* Page Content */}
+                <div className="p-8">
+                    <Outlet />
+                </div>
+            </main>
+
+            <ChatWidget />
+        </div>
+    );
+}

@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "./styles/notebook.css";
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+    --color-s2p-bg: #FFFFFF;
+    --color-s2p-fg: #0F172A;
+    --color-s2p-primary: #3B82F6;
+    --color-s2p-secondary: #F1F5F9;
+    --color-s2p-accent: #2563EB;
+    --color-s2p-muted: #64748B;
+    --color-s2p-border: #E2E8F0;
+    --color-s2p-success: #22C55E;
+    --color-s2p-warning: #F59E0B;
+    --color-s2p-danger: #EF4444;
+
+    --color-s2p-sidebar-bg: #0F172A;
+    --color-s2p-sidebar-fg: #CBD5E1;
+    --color-s2p-sidebar-active: #3B82F6;
+    --color-s2p-sidebar-hover: #1E293B;
+}
+
+body {
+    background-color: var(--color-s2p-bg);
+    color: var(--color-s2p-fg);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-s2p-border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-s2p-muted);
+}

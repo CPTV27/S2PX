@@ -1,0 +1,27 @@
+{
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "hosting": {
+        "target": "s2p-studio",
+        "public": "dist",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "/api/**",
+                "run": {
+                    "serviceId": "s2p-staging",
+                    "region": "us-east4"
+                }
+            },
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    }
+}
