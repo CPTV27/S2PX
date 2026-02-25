@@ -56,8 +56,11 @@ export interface Product {
 }
 
 export interface User {
-    id: number;
-    username: string;
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    profileImageUrl: string | null;
     role: string;
 }
 

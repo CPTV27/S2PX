@@ -9,13 +9,27 @@ import type { Lead, Project, Quote, Product, User, KpiStats, ScanRecord, GcsProj
 // In production, Firebase Hosting rewrites /api/** → Cloud Run (same-origin).
 const BASE_URL = '';
 
+function getCsrfToken(): string | null {
+    const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options?.headers as Record<string, string>),
+    };
+
+    // Attach CSRF token on mutating requests
+    const method = (options?.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+        const csrf = getCsrfToken();
+        if (csrf) headers['x-csrf-token'] = csrf;
+    }
+
     const res = await fetch(`${BASE_URL}${url}`, {
         credentials: 'include', // session cookies
-        headers: {
-            'Content-Type': 'application/json',
-            ...options?.headers,
-        },
+        headers,
         ...options,
     });
 
@@ -28,20 +42,18 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // ── Auth ──
-export async function login(username: string, password: string): Promise<User> {
-    return request('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-    });
+// Backend uses Google OAuth — login redirects to /api/auth/google
+export function getGoogleLoginUrl(): string {
+    return '/api/auth/google';
 }
 
 export async function logout(): Promise<void> {
-    await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    await fetch('/api/logout', { credentials: 'include' });
 }
 
 export async function getCurrentUser(): Promise<User | null> {
     try {
-        return await request('/api/user');
+        return await request('/api/auth/user');
     } catch {
         return null;
     }

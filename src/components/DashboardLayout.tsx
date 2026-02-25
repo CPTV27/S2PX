@@ -42,8 +42,12 @@ export function DashboardLayout() {
         navigate('/login');
     };
 
-    const displayName = user?.username ?? 'User';
-    const initials = displayName.slice(0, 2).toUpperCase();
+    const displayName = user?.firstName && user?.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user?.email ?? 'User';
+    const initials = user?.firstName && user?.lastName
+        ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+        : displayName.slice(0, 2).toUpperCase();
 
     return (
         <div className="min-h-screen bg-s2p-bg text-s2p-fg flex">
