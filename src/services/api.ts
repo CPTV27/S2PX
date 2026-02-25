@@ -89,14 +89,29 @@ export async function fetchQuotes(leadId?: number): Promise<Quote[]> {
     return request(url);
 }
 
-export async function createQuote(data: any): Promise<Quote> {
+export async function createQuote(data: Partial<Omit<Quote, 'id' | 'createdAt'>>): Promise<Quote> {
     return request('/api/cpq/quotes', {
         method: 'POST',
         body: JSON.stringify(data),
     });
 }
 
-export async function calculatePricing(data: any): Promise<any> {
+export interface PricingRequest {
+    areas: { squareFootage: number; buildingType: string; lodLevel: string; disciplines: string[] }[];
+    distance?: number;
+    paymentTerms?: string;
+    risks?: string[];
+    multipliers?: string[];
+}
+
+export interface PricingResponse {
+    lineItems: { service: string; vendorCost: number; clientPrice: number }[];
+    totalCOGS: number;
+    totalClientPrice: number;
+    cogsMultiplier: number;
+}
+
+export async function calculatePricing(data: PricingRequest): Promise<PricingResponse> {
     return request('/api/cpq/calculate-pricing', {
         method: 'POST',
         body: JSON.stringify(data),

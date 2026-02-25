@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatWidget } from './ChatWidget';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -33,6 +34,16 @@ const navItems = [
 
 export function DashboardLayout() {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
+    const displayName = user?.username ?? 'User';
+    const initials = displayName.slice(0, 2).toUpperCase();
 
     return (
         <div className="min-h-screen bg-s2p-bg text-s2p-fg flex">
@@ -99,7 +110,10 @@ export function DashboardLayout() {
 
                 {/* Footer */}
                 <div className="p-3 border-t border-slate-700/50">
-                    <button className="flex items-center justify-center lg:justify-start w-full px-3 py-2.5 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800/50">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center lg:justify-start w-full px-3 py-2.5 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800/50"
+                    >
                         <LogOut size={18} />
                         <span className="hidden lg:block ml-3 text-xs font-mono uppercase tracking-wider">Logout</span>
                     </button>
@@ -120,11 +134,11 @@ export function DashboardLayout() {
                             <span>Gemini 2.5</span>
                         </div>
                         <div className="text-right hidden md:block">
-                            <div className="text-sm font-semibold">Chase Pierson</div>
-                            <div className="text-xs text-s2p-muted">Administrator</div>
+                            <div className="text-sm font-semibold">{displayName}</div>
+                            <div className="text-xs text-s2p-muted capitalize">{user?.role ?? 'User'}</div>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-s2p-primary/10 border border-s2p-border flex items-center justify-center text-s2p-primary font-bold text-sm">
-                            CP
+                            {initials}
                         </div>
                     </div>
                 </header>

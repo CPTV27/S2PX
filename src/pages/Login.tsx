@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login } from '@/services/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { ScanLine, Loader2 } from 'lucide-react';
 
 export function Login() {
@@ -9,6 +9,10 @@ export function Login() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
+
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,9 +21,10 @@ export function Login() {
 
         try {
             await login(username, password);
-            navigate('/dashboard');
-        } catch (err: any) {
-            setError(err.message || 'Invalid credentials');
+            navigate(from, { replace: true });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Invalid credentials';
+            setError(message);
         } finally {
             setIsLoading(false);
         }
