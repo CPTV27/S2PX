@@ -1,25 +1,13 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Key, BookOpenCheck, Zap, Shield, Calculator, Brain } from 'lucide-react';
+import { BookOpenCheck, Zap, Shield, Calculator, Brain } from 'lucide-react';
 import { Notebook } from '../components/notebook/Notebook';
 import { BuildingMap } from '../components/notebook/BuildingMap';
 import type { BuildingInsights } from '../components/notebook/BuildingMap';
 
 export function NotebookCPQ() {
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('s2p-anthropic-key') || '');
   const [buildingInsights, setBuildingInsights] = useState<BuildingInsights | null>(null);
 
-  function handleSaveKey(key: string) {
-    setApiKey(key);
-    if (key) {
-      localStorage.setItem('s2p-anthropic-key', key);
-    } else {
-      localStorage.removeItem('s2p-anthropic-key');
-    }
-  }
-
-  const hasEnvKey = !!process.env.ANTHROPIC_API_KEY;
-  const hasAnyKey = hasEnvKey || !!apiKey;
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY;
 
   return (
     <div className="notebook-theme">
@@ -42,52 +30,15 @@ export function NotebookCPQ() {
             </div>
           </div>
 
-          <button
-            className="nb-btn nb-btn-ghost text-xs"
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Key size={12} />
-            API Key
-            {showSettings ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+          <div className="text-xs font-mono text-[var(--nb-text-muted)] bg-[var(--nb-bg-elevated)] px-3 py-1.5 rounded-lg border border-[var(--nb-border)]">
+            Gemini 3.1 Pro
+          </div>
         </div>
 
-        {/* Settings panel */}
-        {showSettings && (
-          <div className="mt-3 p-4 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg-elevated)]">
-            {hasEnvKey ? (
-              <p className="text-xs font-mono text-[var(--nb-success)]">
-                Anthropic API key configured via environment variable.
-              </p>
-            ) : (
-              <div>
-                <label className="nb-label block mb-1">Anthropic API Key</label>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    className="nb-input flex-1"
-                    value={apiKey}
-                    onChange={e => handleSaveKey(e.target.value)}
-                    placeholder="sk-ant-..."
-                  />
-                  {apiKey && (
-                    <button className="nb-btn nb-btn-ghost text-xs" onClick={() => handleSaveKey('')}>
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <p className="text-[0.65rem] text-[var(--nb-text-dim)] mt-1 font-mono">
-                  Stored in localStorage. For production, set ANTHROPIC_API_KEY in .env.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Warning if no key */}
-        {!hasAnyKey && (
+        {!hasGeminiKey && (
           <div className="nb-error mt-3">
-            No API key configured. Click "API Key" above to enter your Anthropic key, or set ANTHROPIC_API_KEY in .env.
+            Gemini API key not configured. Set GEMINI_API_KEY in .env and rebuild.
           </div>
         )}
       </div>
