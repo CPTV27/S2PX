@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-server/
 *.tsbuildinfo
 
 # Environment variables (secrets)
@@ -26,6 +27,12 @@ Thumbs.db
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Financial Records (sensitive QBO exports)
+Financial Records/
+
+# Claude Code project config
+.claude/
 
 # Misc
 *.local

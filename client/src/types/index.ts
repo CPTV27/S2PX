@@ -1,4 +1,4 @@
-// ── Shared Types for S2P Studio ──
+// ── Shared Types for S2PX ──
 
 export interface Lead {
     id: number;

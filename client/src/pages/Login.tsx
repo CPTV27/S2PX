@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/services/firebase';
 import { useAuth } from '@/hooks/useAuth';
-import { getGoogleLoginUrl } from '@/services/api';
 import { ScanLine, Loader2 } from 'lucide-react';
 
 export function Login() {
@@ -12,6 +13,7 @@ export function Login() {
 
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
     const authError = searchParams.get('error');
+    const [loginError, setLoginError] = useState<string | null>(null);
 
     // If already authenticated, redirect to dashboard
     useEffect(() => {
@@ -20,8 +22,24 @@ export function Login() {
         }
     }, [isAuthenticated, isLoading, navigate, from]);
 
-    const handleGoogleLogin = () => {
-        window.location.href = getGoogleLoginUrl();
+    const handleGoogleLogin = async () => {
+        try {
+            setLoginError(null);
+            await signInWithPopup(auth, googleProvider);
+            // onAuthStateChanged in useAuth handles the rest
+        } catch (err: any) {
+            console.error('Google sign-in failed:', err);
+            const code = err?.code || '';
+            if (code === 'auth/popup-blocked') {
+                setLoginError('Popup blocked. Please allow popups for this site.');
+            } else if (code === 'auth/popup-closed-by-user') {
+                setLoginError(null); // User cancelled, no error needed
+            } else if (code === 'auth/unauthorized-domain') {
+                setLoginError('This domain is not authorized for sign-in. Check Firebase Auth settings.');
+            } else {
+                setLoginError(`Sign-in failed: ${code || err?.message || 'Unknown error'}`);
+            }
+        }
     };
 
     return (
@@ -32,16 +50,16 @@ export function Login() {
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
                         <ScanLine size={32} className="text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Scan2Plan</h1>
-                    <p className="text-slate-400 text-sm mt-1 font-mono uppercase tracking-widest">Studio</p>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">S2P<span className="text-blue-400">X</span></h1>
+                    <p className="text-slate-400 text-sm mt-1 font-mono uppercase tracking-widest">Scan2Plan OS X</p>
                 </div>
 
                 {/* Login card */}
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
                     <div className="space-y-5">
-                        {authError && (
+                        {(authError || loginError) && (
                             <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
-                                Authentication failed. Please try again.
+                                {loginError || 'Authentication failed. Please try again.'}
                             </div>
                         )}
 
@@ -68,7 +86,7 @@ export function Login() {
                 </div>
 
                 <p className="text-center text-slate-500 text-xs mt-6 font-mono">
-                    Scan2Plan OS • v3.0
+                    S2PX • vX.1
                 </p>
             </div>
         </div>

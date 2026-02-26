@@ -1,9 +1,6 @@
 {
-    "firestore": {
-        "rules": "firestore.rules"
-    },
     "hosting": {
-        "target": "s2p-studio",
+        "target": "s2px",
         "public": "dist",
         "ignore": [
             "firebase.json",
@@ -14,8 +11,8 @@
             {
                 "source": "/api/**",
                 "run": {
-                    "serviceId": "s2p-staging",
-                    "region": "us-east4"
+                    "serviceId": "s2px-api",
+                    "region": "us-central1"
                 }
             },
             {

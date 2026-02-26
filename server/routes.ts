@@ -2,6 +2,7 @@ import type { Express } from 'express';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerUploadRoutes } from './routes/uploads.js';
 import { registerScopingRoutes } from './routes/scoping.js';
+import authRoutes from './routes/auth.js';
 import quoteRoutes from './routes/quotes.js';
 import proposalRoutes from './routes/proposals.js';
 import qboRoutes from './routes/quickbooks.js';
@@ -14,6 +15,7 @@ import scorecardRoutes from './routes/scorecard.js';
 
 export async function registerRoutes(app: Express) {
     registerHealthRoutes(app);
+    app.use('/api/auth', authRoutes);
     registerUploadRoutes(app);
     registerScopingRoutes(app);
     app.use('/api/leads', leadRoutes);

@@ -1,18 +1,13 @@
 // ── S2P Backend API Service ──
-// All fetch calls to the existing Scan2Plan Express backend.
-// In dev, Vite proxies /api → localhost:5000.
-// In production, calls go directly to the Cloud Run backend.
-
-import type { Lead, Project, Quote, Product, User, KpiStats, ScanRecord, GcsProjectFolder, GcsFolderEntry, ProjectAnalytics } from '../types';
-
+// All fetch calls to the Scan2Plan Express backend.
 // In dev, Vite proxies /api → localhost:5000.
 // In production, Firebase Hosting rewrites /api/** → Cloud Run (same-origin).
-const BASE_URL = '';
 
-function getCsrfToken(): string | null {
-    const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : null;
-}
+import type { Lead, Project, Quote, Product, User, KpiStats, ScanRecord, GcsProjectFolder, GcsFolderEntry, ProjectAnalytics } from '../types';
+import { auth } from '@/services/firebase';
+import { signOut } from 'firebase/auth';
+
+const BASE_URL = '';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
@@ -20,15 +15,13 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...(options?.headers as Record<string, string>),
     };
 
-    // Attach CSRF token on mutating requests
-    const method = (options?.method || 'GET').toUpperCase();
-    if (method !== 'GET' && method !== 'HEAD') {
-        const csrf = getCsrfToken();
-        if (csrf) headers['x-csrf-token'] = csrf;
+    // Attach Firebase ID token as Bearer auth
+    const token = await auth.currentUser?.getIdToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     const res = await fetch(`${BASE_URL}${url}`, {
-        credentials: 'include', // session cookies
         headers,
         ...options,
     });
@@ -42,16 +35,12 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // ── Auth ──
-// Backend uses Google OAuth — login redirects to /api/auth/google
-export function getGoogleLoginUrl(): string {
-    return '/api/auth/google';
-}
 
 export async function logout(): Promise<void> {
-    await fetch('/api/logout', { credentials: 'include' });
+    await signOut(auth);
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function fetchCurrentUser(): Promise<User | null> {
     try {
         return await request('/api/auth/user');
     } catch {
@@ -376,9 +365,15 @@ export async function uploadFile(file: File, upid: string, fieldName: string): P
     formData.append('upid', upid);
     formData.append('fieldName', fieldName);
 
+    const headers: Record<string, string> = {};
+    const token = await auth.currentUser?.getIdToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const res = await fetch('/api/uploads', {
         method: 'POST',
-        credentials: 'include',
+        headers,
         body: formData,
     });
 

@@ -1,4 +1,4 @@
-// ── Gemini AI Service for S2P Studio ──
+// ── Gemini AI Service for S2PX ──
 // Ported from DT27-wrapper, scoped to S2P Operator persona.
 
 import { GoogleGenAI, FunctionDeclaration, Type, ThinkingLevel, Modality } from "@google/genai";

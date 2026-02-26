@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { getCurrentUser, logout as apiLogout } from '@/services/api';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/services/firebase';
+import { fetchCurrentUser } from '@/services/api';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -23,24 +25,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const refreshUser = useCallback(async () => {
-        try {
-            const user = await getCurrentUser();
-            setState({
-                user,
-                isLoading: false,
-                isAuthenticated: user !== null,
-            });
-        } catch {
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) {
             setState({ user: null, isLoading: false, isAuthenticated: false });
+            return;
         }
+
+        try {
+            const user = await fetchCurrentUser();
+            if (user) {
+                setState({ user, isLoading: false, isAuthenticated: true });
+                return;
+            }
+        } catch {
+            // Backend unreachable — fall through to DEV bypass or unauthenticated
+        }
+
+        // DEV bypass: when backend is unreachable locally, use Firebase user info
+        if (import.meta.env.DEV) {
+            const nameParts = (firebaseUser.displayName || '').split(' ');
+            setState({
+                user: {
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email || 'unknown',
+                    firstName: nameParts[0] || 'Dev',
+                    lastName: nameParts.slice(1).join(' ') || 'User',
+                    role: 'ceo',
+                    profileImageUrl: firebaseUser.photoURL || '',
+                } as User,
+                isLoading: false,
+                isAuthenticated: true,
+            });
+            return;
+        }
+
+        setState({ user: null, isLoading: false, isAuthenticated: false });
     }, []);
 
     useEffect(() => {
-        refreshUser();
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                await refreshUser();
+            } else {
+                setState({ user: null, isLoading: false, isAuthenticated: false });
+            }
+        });
+        return unsubscribe;
     }, [refreshUser]);
 
     const logout = useCallback(async () => {
-        await apiLogout();
+        await signOut(auth);
         setState({ user: null, isLoading: false, isAuthenticated: false });
     }, []);
 

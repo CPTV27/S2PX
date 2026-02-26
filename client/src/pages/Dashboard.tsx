@@ -34,7 +34,7 @@ export function Dashboard() {
         <div className="space-y-8">
             <div>
                 <h2 className="text-2xl font-bold text-s2p-fg">Dashboard</h2>
-                <p className="text-s2p-muted text-sm mt-1">Overview of your Scan2Plan operations.</p>
+                <p className="text-s2p-muted text-sm mt-1">Overview of your S2PX operations.</p>
             </div>
 
             {/* KPI Cards */}

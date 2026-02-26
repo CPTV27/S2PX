@@ -1,12 +1,12 @@
 {
   "projects": {
-    "default": "scan2plan-internal"
+    "default": "s2px-production"
   },
   "targets": {
-    "scan2plan-internal": {
+    "s2px-production": {
       "hosting": {
-        "s2p-studio": [
-          "s2p-studio"
+        "s2px": [
+          "s2px"
         ]
       }
     }

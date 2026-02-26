@@ -5,7 +5,7 @@ import { fetchLeads } from '@/services/api';
 import { cn, formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import type { Lead } from '@/types';
 
-const STAGES = ['all', 'new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost'];
+const STAGES = ['all', 'lead', 'qualified', 'proposal', 'negotiation', 'in_hand', 'urgent', 'won', 'lost'];
 
 export function Pipeline() {
     const [leads, setLeads] = useState<Lead[]>([]);

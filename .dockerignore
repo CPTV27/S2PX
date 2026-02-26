@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.env
+.env.*
+client/
+Financial Records/
+.claude/
+CC_MISSION_BRIEF*.md
+*.md
+.firebase/
+.firebaserc
+firebase.json
+knowledge-base/

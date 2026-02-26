@@ -54,7 +54,7 @@ export function Settings() {
 
     const statusItems: StatusItem[] = [
         {
-            label: 'S2P Backend',
+            label: 'S2PX Backend',
             detail: backendStatus === 'connected' ? 'Connected' : backendStatus === 'checking' ? 'Checking...' : 'Disconnected',
             icon: Database,
             color: 'blue',
@@ -159,15 +159,15 @@ export function Settings() {
                     <div className="space-y-4">
                         <div className="p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl">
                             <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">Platform</div>
-                            <div className="font-medium">Scan2Plan Studio</div>
+                            <div className="font-medium">Scan2Plan OS X</div>
                         </div>
                         <div className="p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl">
                             <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">Version</div>
-                            <div className="font-medium font-mono">v1.0.0</div>
+                            <div className="font-medium font-mono">vX.1</div>
                         </div>
                         <div className="p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl">
                             <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">Architecture</div>
-                            <div className="font-medium">AI Studio + S2P Backend + Firebase</div>
+                            <div className="font-medium">S2PX Engine + PostgreSQL + Firebase</div>
                         </div>
                         <div className="p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl">
                             <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">AI Engine</div>
