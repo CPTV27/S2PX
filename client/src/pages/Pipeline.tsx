@@ -1,13 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
-    Plus, Search, Loader2, Building2, DollarSign, Calendar,
-    X, ExternalLink, ArrowRight, ChevronRight, MapPin,
-    Mail, Phone, FileText, Hash,
+    Plus, Search, Loader2, Building2, DollarSign,
+    ChevronRight,
 } from 'lucide-react';
-import { fetchLeads, fetchLead } from '@/services/api';
-import { cn, formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
+import { fetchLeads, updateLead } from '@/services/api';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import type { Lead } from '@/types';
 
 // ── Kanban stage definitions ──
@@ -20,14 +19,14 @@ interface StageColumn {
 }
 
 const KANBAN_STAGES: StageColumn[] = [
-    { id: 'lead',        label: 'Lead',         color: 'slate',  headerBg: 'bg-slate-400' },
-    { id: 'contacted',   label: 'Contacted',    color: 'sky',    headerBg: 'bg-sky-400' },
-    { id: 'qualified',   label: 'Qualified',    color: 'blue',   headerBg: 'bg-blue-400' },
-    { id: 'proposal',    label: 'Proposal',     color: 'indigo', headerBg: 'bg-indigo-400' },
-    { id: 'negotiation', label: 'Negotiation',  color: 'violet', headerBg: 'bg-violet-400' },
-    { id: 'in_hand',     label: 'In Hand',      color: 'amber',  headerBg: 'bg-amber-400' },
-    { id: 'won',         label: 'Won',          color: 'emerald',headerBg: 'bg-emerald-500' },
-    { id: 'lost',        label: 'Lost',         color: 'red',    headerBg: 'bg-red-400' },
+    { id: 'lead',        label: 'Lead',        color: 'slate',   headerBg: 'bg-slate-400' },
+    { id: 'contacted',   label: 'Contacted',   color: 'sky',     headerBg: 'bg-sky-400' },
+    { id: 'qualified',   label: 'Qualified',   color: 'blue',    headerBg: 'bg-blue-400' },
+    { id: 'proposal',    label: 'Proposal',    color: 'indigo',  headerBg: 'bg-indigo-400' },
+    { id: 'negotiation', label: 'Negotiation', color: 'violet',  headerBg: 'bg-violet-400' },
+    { id: 'in_hand',     label: 'In Hand',     color: 'amber',   headerBg: 'bg-amber-400' },
+    { id: 'won',         label: 'Won',         color: 'emerald', headerBg: 'bg-emerald-500' },
+    { id: 'lost',        label: 'Lost',        color: 'red',     headerBg: 'bg-red-400' },
 ];
 
 const stageBadgeMap: Record<string, string> = {
@@ -52,18 +51,28 @@ const stageDotMap: Record<string, string> = {
     red:     'bg-red-400',
 };
 
-// Map lead status to a kanban column
+// Map lead status (API value) → kanban column id
 function mapToKanbanStage(status: string): string {
-    // Normalize: "leads" → "lead", "closed_won" → "won", etc.
     const s = status.toLowerCase().replace(/ /g, '_');
     if (s === 'leads' || s === 'new') return 'lead';
     if (s === 'closed_won') return 'won';
     if (s === 'closed_lost') return 'lost';
-    if (s === 'urgent') return 'in_hand'; // urgent maps to in_hand column
-    // Direct matches
+    if (s === 'urgent') return 'in_hand';
     if (KANBAN_STAGES.some(ks => ks.id === s)) return s;
-    return 'lead'; // fallback
+    return 'lead';
 }
+
+// Map kanban column id → API status value
+const KANBAN_TO_API_STATUS: Record<string, string> = {
+    lead:        'leads',
+    contacted:   'contacted',
+    qualified:   'qualified',
+    proposal:    'proposal',
+    negotiation: 'negotiation',
+    in_hand:     'urgent',
+    won:         'closed_won',
+    lost:        'closed_lost',
+};
 
 // ── Main Component ──
 
@@ -72,8 +81,9 @@ export function Pipeline() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-    const [drawerLoading, setDrawerLoading] = useState(false);
+    const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+    // Track which lead id is currently being dragged so the card can style itself
+    const draggingLeadId = useRef<number | null>(null);
 
     useEffect(() => {
         fetchLeads()
@@ -112,18 +122,71 @@ export function Pipeline() {
         [leads],
     );
 
-    const handleCardClick = async (lead: Lead) => {
-        setSelectedLead(lead);
-        try {
-            setDrawerLoading(true);
-            const full = await fetchLead(lead.id);
-            setSelectedLead(full);
-        } catch {
-            // keep basic data
-        } finally {
-            setDrawerLoading(false);
-        }
-    };
+    // ── Drag and drop handlers ──
+
+    const handleDragStart = useCallback((leadId: number) => {
+        draggingLeadId.current = leadId;
+    }, []);
+
+    const handleDragEnd = useCallback(() => {
+        draggingLeadId.current = null;
+        setDragOverStage(null);
+    }, []);
+
+    const handleDragOver = useCallback(
+        (e: React.DragEvent<HTMLDivElement>, stageId: string) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            setDragOverStage(stageId);
+        },
+        [],
+    );
+
+    const handleDragLeave = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            // Only clear when leaving the column entirely (not a child element)
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setDragOverStage(null);
+            }
+        },
+        [],
+    );
+
+    const handleDrop = useCallback(
+        (e: React.DragEvent<HTMLDivElement>, targetStageId: string) => {
+            e.preventDefault();
+            setDragOverStage(null);
+
+            const leadId = draggingLeadId.current;
+            if (leadId === null) return;
+
+            const lead = leads.find(l => l.id === leadId);
+            if (!lead) return;
+
+            const currentStageId = mapToKanbanStage(lead.status);
+            if (currentStageId === targetStageId) return;
+
+            const newApiStatus = KANBAN_TO_API_STATUS[targetStageId];
+            if (!newApiStatus) return;
+
+            // Optimistic update — swap the status in local state immediately
+            setLeads(prev =>
+                prev.map(l =>
+                    l.id === leadId ? { ...l, status: newApiStatus } : l,
+                ),
+            );
+
+            // Persist to API; on failure, roll back
+            updateLead(leadId, { status: newApiStatus }).catch(() => {
+                setLeads(prev =>
+                    prev.map(l =>
+                        l.id === leadId ? { ...l, status: lead.status } : l,
+                    ),
+                );
+            });
+        },
+        [leads],
+    );
 
     if (isLoading) {
         return (
@@ -155,9 +218,12 @@ export function Pipeline() {
                             className="bg-white border border-s2p-border rounded-lg pl-8 pr-3 py-1.5 text-xs w-48 focus:outline-none focus:border-s2p-primary focus:ring-1 focus:ring-s2p-primary/20 transition-all"
                         />
                     </div>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-s2p-primary text-white rounded-lg font-medium text-xs hover:bg-s2p-accent transition-colors shadow-sm">
+                    <button
+                        onClick={() => navigate('/dashboard/scoping/new')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-s2p-primary text-white rounded-lg font-medium text-xs hover:bg-s2p-accent transition-colors shadow-sm"
+                    >
                         <Plus size={14} />
-                        New Lead
+                        New Opportunity
                     </button>
                 </div>
             </div>
@@ -169,10 +235,21 @@ export function Pipeline() {
                         const stageLeads = leadsByStage(stage.id);
                         const count = stageCount(stage.id);
                         const value = stageValue(stage.id);
+                        const isOver = dragOverStage === stage.id;
+
                         return (
-                            <div key={stage.id} className="w-72 flex-shrink-0 flex flex-col h-full">
+                            <div
+                                key={stage.id}
+                                className="w-72 flex-shrink-0 flex flex-col h-full"
+                                onDragOver={e => handleDragOver(e, stage.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={e => handleDrop(e, stage.id)}
+                            >
                                 {/* Column header */}
-                                <div className="flex items-center gap-2 px-3 py-2.5 rounded-t-lg bg-white border border-slate-200 border-b-0 flex-shrink-0">
+                                <div className={cn(
+                                    'flex items-center gap-2 px-3 py-2.5 rounded-t-lg bg-white border border-slate-200 border-b-0 flex-shrink-0 transition-colors',
+                                    isOver && 'border-blue-300',
+                                )}>
                                     <div className={cn('w-2 h-2 rounded-full', stageDotMap[stage.color])} />
                                     <span className="text-xs font-semibold text-slate-700 flex-1">{stage.label}</span>
                                     <span className={cn(
@@ -182,9 +259,13 @@ export function Pipeline() {
                                         {count}
                                     </span>
                                 </div>
+
                                 {/* Value bar */}
                                 {value > 0 && (
-                                    <div className="px-3 py-1 bg-white border-x border-slate-200 flex-shrink-0">
+                                    <div className={cn(
+                                        'px-3 py-1 bg-white border-x border-slate-200 flex-shrink-0 transition-colors',
+                                        isOver && 'border-blue-300',
+                                    )}>
                                         <span className="text-[10px] font-mono text-slate-400">
                                             {formatCurrency(value)}
                                         </span>
@@ -192,19 +273,28 @@ export function Pipeline() {
                                 )}
 
                                 {/* Cards scroll container */}
-                                <div className="flex-1 min-h-0 bg-slate-50/70 rounded-b-lg border border-slate-200 border-t-0 overflow-y-auto p-2 space-y-2">
+                                <div className={cn(
+                                    'flex-1 min-h-0 rounded-b-lg border border-slate-200 border-t-0 overflow-y-auto p-2 space-y-2 transition-all duration-150',
+                                    isOver
+                                        ? 'bg-blue-50/60 border-blue-300 ring-2 ring-blue-200 ring-inset'
+                                        : 'bg-slate-50/70',
+                                )}>
                                     {stageLeads.map(lead => (
                                         <LeadCard
                                             key={lead.id}
                                             lead={lead}
                                             stageColor={stage.color}
-                                            isSelected={lead.id === selectedLead?.id}
-                                            onClick={() => handleCardClick(lead)}
+                                            onDragStart={() => handleDragStart(lead.id)}
+                                            onDragEnd={handleDragEnd}
+                                            onClick={() => navigate(`/dashboard/scoping/${lead.id}`)}
                                         />
                                     ))}
                                     {stageLeads.length === 0 && (
-                                        <div className="flex items-center justify-center py-12 text-xs text-slate-300 italic">
-                                            No leads
+                                        <div className={cn(
+                                            'flex items-center justify-center py-12 text-xs italic transition-colors',
+                                            isOver ? 'text-blue-300' : 'text-slate-300',
+                                        )}>
+                                            {isOver ? 'Drop here' : 'No leads'}
                                         </div>
                                     )}
                                 </div>
@@ -213,18 +303,6 @@ export function Pipeline() {
                     })}
                 </div>
             </div>
-
-            {/* Lead Detail Drawer */}
-            <AnimatePresence>
-                {selectedLead && (
-                    <LeadDrawer
-                        lead={selectedLead}
-                        loading={drawerLoading}
-                        onClose={() => setSelectedLead(null)}
-                        onNavigate={(id) => navigate(`/dashboard/scoping/${id}`)}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 }
@@ -234,21 +312,51 @@ export function Pipeline() {
 function LeadCard({
     lead,
     stageColor,
-    isSelected,
+    onDragStart,
+    onDragEnd,
     onClick,
 }: {
     lead: Lead;
     stageColor: string;
-    isSelected: boolean;
+    onDragStart: () => void;
+    onDragEnd: () => void;
     onClick: () => void;
 }) {
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        // Store the lead id in dataTransfer as a fallback (not read, but required for Firefox)
+        e.dataTransfer.setData('text/plain', String(lead.id));
+        e.dataTransfer.effectAllowed = 'move';
+        setIsDragging(true);
+        onDragStart();
+    };
+
+    const handleDragEnd = () => {
+        setIsDragging(false);
+        onDragEnd();
+    };
+
     return (
-        <button
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: isDragging ? 0.4 : 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+        >
+        <div
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             onClick={onClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+            aria-label={`Open scoping form for ${lead.projectName || 'Untitled Project'}`}
             className={cn(
-                'w-full text-left bg-white rounded-lg border p-3 transition-all group cursor-pointer',
-                isSelected
-                    ? 'border-blue-400 ring-2 ring-blue-100 shadow-md'
+                'w-full text-left bg-white rounded-lg border p-3 transition-all group cursor-pointer select-none',
+                isDragging
+                    ? 'border-blue-300 shadow-lg ring-2 ring-blue-100 opacity-40'
                     : 'border-slate-200 hover:border-blue-300 hover:shadow-sm',
             )}
         >
@@ -259,10 +367,7 @@ function LeadCard({
                 </div>
                 <ChevronRight
                     size={12}
-                    className={cn(
-                        'flex-shrink-0 mt-0.5 transition-colors',
-                        isSelected ? 'text-blue-400' : 'text-slate-300 group-hover:text-blue-400',
-                    )}
+                    className="flex-shrink-0 mt-0.5 text-slate-300 group-hover:text-blue-400 transition-colors"
                 />
             </div>
 
@@ -285,9 +390,9 @@ function LeadCard({
                 {lead.priority && (
                     <span className={cn(
                         'text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded',
-                        lead.priority === 'high' ? 'bg-red-50 text-red-500' :
+                        lead.priority === 'high'   ? 'bg-red-50 text-red-500' :
                         lead.priority === 'medium' ? 'bg-amber-50 text-amber-500' :
-                        'bg-slate-50 text-slate-400',
+                                                     'bg-slate-50 text-slate-400',
                     )}>
                         {lead.priority}
                     </span>
@@ -296,196 +401,7 @@ function LeadCard({
                     {formatDate(lead.createdAt)}
                 </span>
             </div>
-        </button>
-    );
-}
-
-// ── Lead Drawer ──
-
-function LeadDrawer({
-    lead,
-    loading,
-    onClose,
-    onNavigate,
-}: {
-    lead: Lead;
-    loading: boolean;
-    onClose: () => void;
-    onNavigate: (id: number) => void;
-}) {
-    const stageInfo = KANBAN_STAGES.find(s => s.id === mapToKanbanStage(lead.status));
-
-    return (
-        <>
-            {/* Backdrop */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/20 z-50"
-                onClick={onClose}
-            />
-
-            {/* Drawer */}
-            <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col"
-            >
-                {/* Header */}
-                <div className="px-5 py-4 border-b border-slate-200 flex-shrink-0">
-                    <div className="flex items-center justify-between mb-3">
-                        <button
-                            onClick={onClose}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
-                        <button
-                            onClick={() => onNavigate(lead.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                            Open Scoping Form
-                            <ExternalLink size={12} />
-                        </button>
-                    </div>
-
-                    {stageInfo && (
-                        <span className={cn(
-                            'inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded mb-2',
-                            stageBadgeMap[stageInfo.color],
-                        )}>
-                            {stageInfo.label}
-                        </span>
-                    )}
-
-                    <h2 className="text-lg font-bold text-slate-800 leading-tight">
-                        {lead.projectName || 'Untitled Project'}
-                    </h2>
-
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                            <Building2 size={12} />
-                            {lead.clientName || '—'}
-                        </span>
-                        {lead.projectAddress && (
-                            <span className="flex items-center gap-1">
-                                <MapPin size={12} />
-                                {lead.projectAddress}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto">
-                    {loading && (
-                        <div className="flex items-center justify-center py-6">
-                            <Loader2 className="animate-spin text-blue-400" size={18} />
-                        </div>
-                    )}
-
-                    {/* Quick stats */}
-                    <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b border-slate-100">
-                        <div className="text-center">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Value</div>
-                            <div className="text-sm font-bold text-slate-700">
-                                {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">SqFt</div>
-                            <div className="text-sm font-bold text-slate-700">
-                                {lead.squareFootage ? lead.squareFootage.toLocaleString() : '—'}
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Priority</div>
-                            <div className={cn(
-                                'text-sm font-bold capitalize',
-                                lead.priority === 'high' ? 'text-red-500' :
-                                lead.priority === 'medium' ? 'text-amber-500' : 'text-slate-400',
-                            )}>
-                                {lead.priority || '—'}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Contact info */}
-                    <div className="px-5 py-4 border-b border-slate-100">
-                        <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Contact</h3>
-                        <div className="space-y-2">
-                            {lead.contactName && (
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                    <Hash size={12} className="text-slate-400" />
-                                    {lead.contactName}
-                                </div>
-                            )}
-                            {lead.contactEmail && (
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                    <Mail size={12} className="text-slate-400" />
-                                    {lead.contactEmail}
-                                </div>
-                            )}
-                            {lead.contactPhone && (
-                                <div className="flex items-center gap-2 text-xs text-slate-600">
-                                    <Phone size={12} className="text-slate-400" />
-                                    {lead.contactPhone}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="px-5 py-4">
-                        <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Details</h3>
-                        <div className="space-y-2">
-                            {lead.buildingType && (
-                                <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                                    <span className="text-xs text-slate-500">Building Type</span>
-                                    <span className="text-xs font-medium text-slate-700">{lead.buildingType}</span>
-                                </div>
-                            )}
-                            {lead.source && (
-                                <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                                    <span className="text-xs text-slate-500">Source</span>
-                                    <span className="text-xs font-medium text-slate-700">{lead.source}</span>
-                                </div>
-                            )}
-                            <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                                <span className="text-xs text-slate-500">Created</span>
-                                <span className="text-xs font-medium text-slate-700">{formatDate(lead.createdAt)}</span>
-                            </div>
-                            {lead.updatedAt && (
-                                <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                                    <span className="text-xs text-slate-500">Updated</span>
-                                    <span className="text-xs font-medium text-slate-700">{formatDate(lead.updatedAt)}</span>
-                                </div>
-                            )}
-                            {lead.notes && (
-                                <div className="mt-3 p-3 bg-slate-50 rounded-lg">
-                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Notes</span>
-                                    <p className="text-xs text-slate-600 whitespace-pre-wrap">{lead.notes}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="px-5 py-4 border-t border-slate-200 flex-shrink-0">
-                    <button
-                        onClick={() => onNavigate(lead.id)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        Open Scoping Form
-                        <ArrowRight size={13} />
-                    </button>
-                </div>
-            </motion.div>
-        </>
+        </div>
+        </motion.div>
     );
 }

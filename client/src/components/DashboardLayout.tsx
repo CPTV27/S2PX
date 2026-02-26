@@ -14,7 +14,6 @@ import {
     ScanLine,
     BookOpenCheck,
     HardDrive,
-    ClipboardList,
     Factory,
     Activity,
     Search,
@@ -27,9 +26,8 @@ import { CommandPalette } from './CommandPalette';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: ClipboardList, label: 'Scoping', path: '/dashboard/scoping' },
-    { icon: Factory, label: 'Production', path: '/dashboard/production' },
     { icon: Users, label: 'Pipeline', path: '/dashboard/pipeline' },
+    { icon: Factory, label: 'Production', path: '/dashboard/production' },
     { icon: MessageSquareDashed, label: 'AI Quotes', path: '/dashboard/quotes' },
     { icon: FolderKanban, label: 'Projects', path: '/dashboard/projects' },
     { icon: BarChart3, label: 'Revenue', path: '/dashboard/revenue' },
