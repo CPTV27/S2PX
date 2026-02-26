@@ -6,7 +6,6 @@ import {
     FolderKanban,
     BarChart3,
     BookOpen,
-    SlidersHorizontal,
     Settings,
     LogOut,
     Sparkles,
@@ -30,7 +29,6 @@ const navItems = [
     { icon: BarChart3, label: 'Revenue', path: '/dashboard/revenue' },
     { icon: Activity, label: 'Scorecard', path: '/dashboard/scorecard' },
     { icon: BookOpen, label: 'Knowledge Base', path: '/dashboard/knowledge' },
-    { icon: SlidersHorizontal, label: 'Pricing Rules', path: '/dashboard/pricing-rules' },
     { icon: HardDrive, label: 'Cloud Storage', path: '/dashboard/storage' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
 ] as const;

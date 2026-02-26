@@ -6,13 +6,10 @@ import { DashboardLayout } from './components/DashboardLayout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Pipeline } from './pages/Pipeline';
-import { QuoteBuilder } from './pages/QuoteBuilder';
 import { Projects } from './pages/Projects';
 import { Revenue } from './pages/Revenue';
 import { KnowledgeBase } from './pages/KnowledgeBase';
-import { PricingRules } from './pages/PricingRules';
 import { Settings } from './pages/Settings';
-import { NotebookCPQ } from './pages/NotebookCPQ';
 import { StorageBrowser } from './pages/StorageBrowser';
 import { ScopingList } from './pages/ScopingList';
 import { ScopingForm } from './pages/ScopingForm';
@@ -40,14 +37,11 @@ export default function App() {
                         >
                             <Route index element={<Dashboard />} />
                             <Route path="pipeline" element={<Pipeline />} />
-                            <Route path="quotes" element={<QuoteBuilder />} />
                             <Route path="projects" element={<Projects />} />
                             <Route path="revenue" element={<Revenue />} />
                             <Route path="scorecard" element={<Scorecard />} />
                             <Route path="knowledge" element={<KnowledgeBase />} />
-                            <Route path="pricing-rules" element={<PricingRules />} />
                             <Route path="settings" element={<Settings />} />
-                            <Route path="notebook-cpq" element={<NotebookCPQ />} />
                             <Route path="storage" element={<StorageBrowser />} />
                             <Route path="scoping" element={<ScopingList />} />
                             <Route path="scoping/new" element={<ScopingForm />} />
