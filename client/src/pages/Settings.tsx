@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Database, Cloud, Key, CheckCircle, XCircle, RefreshCw, HardDrive, Flame } from 'lucide-react';
+import { Database, Cloud, Key, CheckCircle, XCircle, RefreshCw, HardDrive, Flame, FileText, ChevronRight } from 'lucide-react';
 import { checkHealth } from '@/services/api';
 import { checkFirestoreConnection } from '@/services/firestore';
 import { checkStorageConnection, BUCKETS } from '@/services/storage';
@@ -16,6 +17,7 @@ interface StatusItem {
 }
 
 export function Settings() {
+    const navigate = useNavigate();
     const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
     const [firestoreStatus, setFirestoreStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
     const [storageStatus, setStorageStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
@@ -146,6 +148,31 @@ export function Settings() {
                             </div>
                         ))}
                     </div>
+                </motion.div>
+
+                {/* Quick Links */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="bg-white border border-s2p-border rounded-2xl p-8 lg:col-span-2"
+                >
+                    <h3 className="text-lg font-semibold mb-4">Configuration</h3>
+                    <button
+                        onClick={() => navigate('/dashboard/settings/proposal-template')}
+                        className="w-full flex items-center justify-between p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover:bg-blue-100">
+                                <FileText size={18} />
+                            </div>
+                            <div className="text-left">
+                                <div className="font-medium text-sm">Proposal Template</div>
+                                <div className="text-xs text-s2p-muted">Edit boilerplate content for PDF proposals (About, Why, Capabilities, BIM Standards, etc.)</div>
+                            </div>
+                        </div>
+                        <ChevronRight size={16} className="text-s2p-muted group-hover:text-blue-500" />
+                    </button>
                 </motion.div>
 
                 {/* About */}

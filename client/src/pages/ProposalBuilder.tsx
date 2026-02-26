@@ -10,9 +10,11 @@ import {
     generateProposal,
     sendProposal,
     fetchProposalStatus,
+    fetchProposalTemplates,
     type ScopingFormData,
     type QuoteData,
     type ProposalSummary,
+    type ProposalTemplateData,
 } from '@/services/api';
 import { ProposalPreview } from '@/components/proposal/ProposalPreview';
 import type { LineItemShell, QuoteTotals } from '@shared/types/lineItem';
@@ -34,6 +36,8 @@ export function ProposalBuilder() {
     const [generating, setGenerating] = useState(false);
     const [sending, setSending] = useState(false);
     const [latestProposal, setLatestProposal] = useState<ProposalSummary | null>(null);
+    const [templates, setTemplates] = useState<ProposalTemplateData[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
 
     // Load data
     useEffect(() => {
@@ -41,13 +45,17 @@ export function ProposalBuilder() {
 
         async function load() {
             try {
-                const [formData, quotesData] = await Promise.all([
+                const [formData, quotesData, tplData] = await Promise.all([
                     fetchScopingForm(formId!),
                     fetchQuotesByForm(formId!),
+                    fetchProposalTemplates().catch(() => [] as ProposalTemplateData[]),
                 ]);
 
                 setForm(formData);
                 setSendEmail(formData.contactEmail || '');
+                setTemplates(tplData);
+                const activeTpl = tplData.find(t => t.isActive);
+                if (activeTpl) setSelectedTemplateId(activeTpl.id);
 
                 if (quotesData.length > 0) {
                     const latest = quotesData[quotesData.length - 1];
@@ -78,7 +86,7 @@ export function ProposalBuilder() {
         setGenerating(true);
         setError(null);
         try {
-            const result = await generateProposal(quote.id, customMessage || undefined);
+            const result = await generateProposal(quote.id, customMessage || undefined, selectedTemplateId);
             setLatestProposal(result);
             setProposals(prev => [...prev, result]);
         } catch (err) {
@@ -164,6 +172,24 @@ export function ProposalBuilder() {
 
                 {/* Right: Controls */}
                 <div className="space-y-4">
+                    {/* Template selector */}
+                    {templates.length > 1 && (
+                        <div className="bg-white rounded-lg border border-slate-200 p-4">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Template</h3>
+                            <select
+                                value={selectedTemplateId ?? ''}
+                                onChange={e => setSelectedTemplateId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 focus:outline-none"
+                            >
+                                {templates.map(t => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.name}{t.isActive ? ' (active)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Custom message */}
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Cover Note</h3>

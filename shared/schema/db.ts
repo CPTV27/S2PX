@@ -396,3 +396,24 @@ export const uploadShareFilesRelations = relations(uploadShareFiles, ({ one }) =
         references: [uploadShares.id],
     }),
 }));
+
+// ── Proposal Templates ──
+// Editable boilerplate content for proposal PDF sections.
+export const proposalTemplates = pgTable('proposal_templates', {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull().default('default'),
+    aboutScan2plan: text('about_scan2plan'),
+    whyScan2plan: text('why_scan2plan'),
+    capabilities: text('capabilities'),
+    difference: text('difference'),
+    bimStandardsIntro: text('bim_standards_intro'),
+    paymentTermsDefault: text('payment_terms_default'),
+    sfAuditClause: text('sf_audit_clause'),
+    contactEmail: text('contact_email').default('admin@scan2plan.io'),
+    contactPhone: text('contact_phone').default('(518) 362-2403'),
+    footerText: text('footer_text'),
+    isActive: boolean('is_active').default(true),
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

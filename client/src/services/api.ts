@@ -451,10 +451,10 @@ export interface ProposalSummary {
     pdfSize?: number;
 }
 
-export async function generateProposal(quoteId: number, customMessage?: string): Promise<ProposalSummary> {
+export async function generateProposal(quoteId: number, customMessage?: string, templateId?: number): Promise<ProposalSummary> {
     return request(`/api/proposals/${quoteId}/generate`, {
         method: 'POST',
-        body: JSON.stringify({ customMessage }),
+        body: JSON.stringify({ customMessage, templateId }),
     });
 }
 
@@ -780,6 +780,56 @@ export async function revokeUploadShare(id: number): Promise<{ message: string }
 
 export async function fetchUploadShareFiles(id: number): Promise<UploadShareFileData[]> {
     return request(`/api/upload-shares/${id}/files`);
+}
+
+// ── Proposal Templates (Phase 13) ──
+
+export interface ProposalTemplateData {
+    id: number;
+    name: string;
+    aboutScan2plan: string | null;
+    whyScan2plan: string | null;
+    capabilities: string | null;
+    difference: string | null;
+    bimStandardsIntro: string | null;
+    paymentTermsDefault: string | null;
+    sfAuditClause: string | null;
+    contactEmail: string;
+    contactPhone: string;
+    footerText: string | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export async function fetchProposalTemplates(): Promise<ProposalTemplateData[]> {
+    return request('/api/proposal-templates');
+}
+
+export async function fetchActiveProposalTemplate(): Promise<ProposalTemplateData> {
+    return request('/api/proposal-templates/active');
+}
+
+export async function fetchProposalTemplate(id: number): Promise<ProposalTemplateData> {
+    return request(`/api/proposal-templates/${id}`);
+}
+
+export async function createProposalTemplate(data: Partial<ProposalTemplateData>): Promise<ProposalTemplateData> {
+    return request('/api/proposal-templates', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateProposalTemplate(id: number, data: Partial<ProposalTemplateData>): Promise<ProposalTemplateData> {
+    return request(`/api/proposal-templates/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteProposalTemplate(id: number): Promise<{ message: string }> {
+    return request(`/api/proposal-templates/${id}`, { method: 'DELETE' });
 }
 
 // ── Health ──

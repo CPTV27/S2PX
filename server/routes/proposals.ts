@@ -5,8 +5,9 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import { db } from '../db';
-import { proposals, quotes, scopingForms, scopeAreas } from '../../shared/schema/db';
+import { proposals, quotes, scopingForms, scopeAreas, proposalTemplates } from '../../shared/schema/db';
 import { eq } from 'drizzle-orm';
+import type { TemplateData } from '../lib/proposalDataMapper';
 import { generateProposalPDF } from '../pdf/proposalGenerator';
 import { mapToProposalData } from '../lib/proposalDataMapper';
 import { sendProposalEmail, buildProposalEmailHtml } from '../lib/emailSender';
@@ -18,7 +19,7 @@ const router = Router();
 router.post('/:quoteId/generate', async (req: Request, res: Response) => {
     try {
         const quoteId = parseInt(req.params.quoteId, 10);
-        const { customMessage } = req.body;
+        const { customMessage, templateId } = req.body;
 
         // Load quote
         const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId));
@@ -30,6 +31,20 @@ router.post('/:quoteId/generate', async (req: Request, res: Response) => {
 
         const areas = await db.select().from(scopeAreas)
             .where(eq(scopeAreas.scopingFormId, form.id));
+
+        // Load proposal template (by ID or active default)
+        let template: TemplateData | null = null;
+        if (templateId) {
+            const [tpl] = await db.select().from(proposalTemplates)
+                .where(eq(proposalTemplates.id, templateId));
+            if (tpl) template = tpl as unknown as TemplateData;
+        }
+        if (!template) {
+            const [tpl] = await db.select().from(proposalTemplates)
+                .where(eq(proposalTemplates.isActive, true))
+                .limit(1);
+            if (tpl) template = tpl as unknown as TemplateData;
+        }
 
         // Count existing proposals for versioning
         const existing = await db.select().from(proposals)
@@ -65,6 +80,7 @@ router.post('/:quoteId/generate', async (req: Request, res: Response) => {
             },
             version,
             customMessage,
+            template,
         });
 
         // Generate PDF
