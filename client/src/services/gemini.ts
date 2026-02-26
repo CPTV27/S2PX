@@ -62,9 +62,9 @@ export async function sendMessageToGemini(
     onToolCall?: (toolName: string, args: any) => void
 ) {
     try {
-        let modelName = "gemini-2.5-flash-preview-05-20";
+        let modelName = "gemini-2.5-flash";
         if (chatConfig.useReasoning) {
-            modelName = "gemini-2.5-pro-preview-05-06";
+            modelName = "gemini-3.1-pro-preview";
         }
 
         const tools: any[] = [{ functionDeclarations: [createLeadTool] }];
@@ -175,8 +175,8 @@ export async function sendPricingMessage(
 ) {
     try {
         const modelName = chatConfig.useReasoning
-            ? "gemini-2.5-pro-preview-05-06"
-            : "gemini-2.5-flash-preview-05-20";
+            ? "gemini-3.1-pro-preview"
+            : "gemini-2.5-flash";
 
         const systemInstruction = `
 You are the S2P Pricing Engine — an AI-powered quote generator for Scan2Plan.
@@ -264,7 +264,7 @@ export async function generateImage(prompt: string, aspectRatio: string = '16:9'
         const enhancedPrompt = `${prompt}. Style: Professional, technical, clean. Colors: blue and white. Industry: construction, architecture, engineering.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-2.5-flash-image',
             contents: { parts: [{ text: enhancedPrompt }] },
             config: {
                 responseModalities: ['TEXT', 'IMAGE'] as any,

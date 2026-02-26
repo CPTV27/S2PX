@@ -89,21 +89,14 @@ const SECTIONS: SectionDef[] = [
         partNumber: 1, partTitle: 'PART I: COMPANY FOUNDATION', sectionNumber: 2,
         sortOrder: 2,
     },
-    {
-        file: 'part-1-foundation/section-03-financial-profile-pricing-market-position.md',
-        slug: 'section-03-financial-pricing',
-        title: 'Section 3: Financial Profile, Pricing & Market Position',
-        emoji: '💰',
-        partNumber: 1, partTitle: 'PART I: COMPANY FOUNDATION', sectionNumber: 3,
-        sortOrder: 3,
-    },
+    // Section 3 (Financial Profile) excluded — contains sensitive financial data
     {
         file: 'part-2-sales/section-04-discovery-sales-process.md',
         slug: 'section-04-discovery-sales',
         title: 'Section 4: Discovery & Sales Process',
         emoji: '🔍',
         partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 4,
-        sortOrder: 4,
+        sortOrder: 3,
     },
     {
         file: 'part-2-sales/section-05-client-journey-project-execution.md',
@@ -111,7 +104,7 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 5: Client Journey & Project Execution',
         emoji: '👣',
         partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 5,
-        sortOrder: 5,
+        sortOrder: 4,
     },
     {
         file: 'part-2-sales/section-06-buyer-personas.md',
@@ -119,7 +112,7 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 6: Buyer Personas',
         emoji: '🎯',
         partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 6,
-        sortOrder: 6,
+        sortOrder: 5,
     },
     {
         file: 'part-3-technology/section-07-technology-operations-infrastructure.md',
@@ -127,7 +120,7 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 7: Technology & Operations Infrastructure',
         emoji: '⚙️',
         partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 7,
-        sortOrder: 7,
+        sortOrder: 6,
     },
     {
         file: 'part-3-technology/section-08-standards-technical-framework.md',
@@ -135,7 +128,7 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 8: Standards & Technical Framework',
         emoji: '📐',
         partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 8,
-        sortOrder: 8,
+        sortOrder: 7,
     },
     {
         file: 'part-3-technology/section-09-services-deliverables-coverage.md',
@@ -143,23 +136,16 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 9: Services, Deliverables & Coverage',
         emoji: '📦',
         partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 9,
-        sortOrder: 9,
+        sortOrder: 8,
     },
-    {
-        file: 'part-4-strategy/section-10-fy2026-strategy.md',
-        slug: 'section-10-fy2026-strategy',
-        title: 'Section 10: FY2026 Strategy',
-        emoji: '🚀',
-        partNumber: 4, partTitle: 'PART IV: STRATEGY & GROWTH', sectionNumber: 10,
-        sortOrder: 10,
-    },
+    // Section 10 (FY2026 Strategy) excluded — contains sensitive financial targets
     {
         file: 'part-4-strategy/section-11-competitive-landscape.md',
         slug: 'section-11-competitive',
         title: 'Section 11: Competitive Landscape',
         emoji: '🏁',
         partNumber: 4, partTitle: 'PART IV: STRATEGY & GROWTH', sectionNumber: 11,
-        sortOrder: 11,
+        sortOrder: 9,
     },
     {
         file: 'part-4-strategy/section-12-content-brand-systems.md',
@@ -167,7 +153,7 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 12: Content & Brand Systems',
         emoji: '🎨',
         partNumber: 4, partTitle: 'PART IV: STRATEGY & GROWTH', sectionNumber: 12,
-        sortOrder: 12,
+        sortOrder: 10,
     },
     {
         file: 'part-5-operations/section-13-systems-architecture-operations.md',
@@ -175,16 +161,9 @@ const SECTIONS: SectionDef[] = [
         title: 'Section 13: Systems Architecture & Operations',
         emoji: '🗄️',
         partNumber: 5, partTitle: 'PART V: OPERATIONS & SYSTEMS', sectionNumber: 13,
-        sortOrder: 13,
+        sortOrder: 11,
     },
-    {
-        file: 'appendix/appendix-b-data-dictionary.md',
-        slug: 'appendix-b-data-dictionary',
-        title: 'Appendix B: Master Data Dictionary v2.1',
-        emoji: '📊',
-        partNumber: null, partTitle: null, sectionNumber: null,
-        sortOrder: 14,
-    },
+    // Appendix B (Data Dictionary) excluded — contains cost model, rate cards, pricing multipliers
 ];
 
 async function main() {

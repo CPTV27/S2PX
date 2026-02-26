@@ -117,24 +117,24 @@ assertClose(applyPaymentTermPremium(10000, "partner"), 10000, "partner → $10,0
 assertClose(applyPaymentTermPremium(10000, "owner"), 10000, "owner → $10,000");
 
 console.log("\n=== ACT Pricing Tests ===");
-assertClose(calculateACTAreaPricing(5000).clientPrice, 10000, "ACT 5000sqft → $10,000");
-assertClose(calculateACTAreaPricing(5000).upteamCost, 6500, "ACT 5000sqft upteam → $6,500");
-assertClose(calculateACTAreaPricing(2000).clientPrice, 6000, "ACT 2000sqft (floor 3000) → $6,000");
-assertClose(calculateACTAreaPricing(2000).upteamCost, 3900, "ACT 2000sqft upteam → $3,900");
-assertClose(calculateACTAreaPricing(10000, 0.65).clientPrice, 13000, "ACT 10000sqft interior → $13,000");
+assertClose(calculateACTAreaPricing(5000).clientPrice, 1000, "ACT 5000sqft → $1,000");
+assertClose(calculateACTAreaPricing(5000).upteamCost, 650, "ACT 5000sqft upteam → $650");
+assertClose(calculateACTAreaPricing(2000).clientPrice, 600, "ACT 2000sqft (floor 3000) → $600");
+assertClose(calculateACTAreaPricing(2000).upteamCost, 390, "ACT 2000sqft upteam → $390");
+assertClose(calculateACTAreaPricing(10000, 0.65).clientPrice, 1300, "ACT 10000sqft interior → $1,300");
 
 console.log("\n=== Matterport Pricing Tests ===");
-assertClose(calculateMatterportPricing(5000).clientPrice, 500, "MP 5000sqft → $500");
-assertClose(calculateMatterportPricing(5000).upteamCost, 325, "MP 5000sqft upteam → $325");
-assertClose(calculateMatterportPricing(2000).clientPrice, 300, "MP 2000sqft (floor 3000) → $300");
-assertClose(calculateMatterportPricing(2000).upteamCost, 195, "MP 2000sqft upteam → $195");
+assertClose(calculateMatterportPricing(5000).clientPrice, 50, "MP 5000sqft → $50");
+assertClose(calculateMatterportPricing(5000).upteamCost, 32.50, "MP 5000sqft upteam → $32.50");
+assertClose(calculateMatterportPricing(2000).clientPrice, 30, "MP 2000sqft (floor 3000) → $30");
+assertClose(calculateMatterportPricing(2000).upteamCost, 19.50, "MP 2000sqft upteam → $19.50");
 
 console.log("\n=== Modeling Cost Tests (fallback rates) ===");
 // 5000 sqft, arch, LOD 300, null rates, full scope
-// Fallback: 5000 × $2.50 × 1.3 × 1.0 = $16,250 client, $10,562.50 upteam
+// Fallback: 5000 × $0.25 × 1.3 × 1.0 = $1,625 client, $1,056.25 upteam
 const mc1 = calculateAreaPricing({ sqft: 5000, discipline: "arch", lod: "300", clientRatePerSqft: null, upteamRatePerSqft: null, scopePortion: 1.0 });
-assertClose(mc1.clientPrice, 16250, "arch 5k/LOD300 fallback client");
-assertClose(mc1.upteamCost, 10562.50, "arch 5k/LOD300 fallback upteam");
+assertClose(mc1.clientPrice, 1625, "arch 5k/LOD300 fallback client");
+assertClose(mc1.upteamCost, 1056.25, "arch 5k/LOD300 fallback upteam");
 
 // 5000 sqft, arch, LOD 300, DB rates $3.50/$2.00, full scope
 const mc2 = calculateAreaPricing({ sqft: 5000, discipline: "arch", lod: "300", clientRatePerSqft: 3.50, upteamRatePerSqft: 2.00, scopePortion: 1.0 });

@@ -5,8 +5,8 @@ export const MIN_SQFT_FLOOR = 3000;
 export const UPTEAM_MULTIPLIER_FALLBACK = 0.65;
 export const SQFT_PER_ACRE = 43560;
 export const TIER_A_THRESHOLD = 50000;
-export const ACT_RATE_PER_SQFT = 2.00;
-export const MATTERPORT_RATE_PER_SQFT = 0.10;
+export const ACT_RATE_PER_SQFT = 0.20;
+export const MATTERPORT_RATE_PER_SQFT = 0.01;
 
 export const FY26_MARGIN_FLOOR = 0.40;
 export const MARGIN_GUARDRAIL = 0.45;
@@ -15,10 +15,10 @@ export const MARGIN_SLIDER_MAX = 0.60;
 export const MARGIN_DEFAULT = 0.45;
 
 export const DEFAULT_BASE_RATES: Record<string, number> = {
-  arch: 2.50,
-  mepf: 3.00,
-  structure: 2.00,
-  site: 1.50,
+  arch: 0.25,
+  mepf: 0.30,
+  structure: 0.20,
+  site: 0.15,
 };
 
 export const LOD_MULTIPLIERS: Record<string, number> = {

@@ -204,7 +204,7 @@ router.post('/sections/:slug/ai-edit', async (req: Request, res: Response) => {
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-05-20',
+            model: 'gemini-2.5-flash',
             contents: {
                 parts: [{
                     text: `You are an expert editor for the Scan2Plan Master Knowledge Base.
@@ -339,7 +339,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         }));
 
         const chat = genai.chats.create({
-            model: 'gemini-2.5-flash-preview-05-20',
+            model: 'gemini-2.5-flash',
             config: { systemInstruction: systemPrompt },
             history: chatHistory,
         });
