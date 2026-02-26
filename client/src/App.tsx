@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
+import { TourProvider } from './hooks/useTour';
 import { RequireAuth } from './components/RequireAuth';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardLayout } from './components/DashboardLayout';
@@ -19,6 +20,7 @@ import { ProductionPipeline } from './pages/ProductionPipeline';
 import { ProductionDetail } from './pages/ProductionDetail';
 import { FieldCapture } from './pages/FieldCapture';
 import { Scorecard } from './pages/Scorecard';
+import { ProposalTemplateSettings } from './pages/ProposalTemplateSettings';
 import { UploadPortal } from './pages/UploadPortal';
 
 export default function App() {
@@ -34,7 +36,9 @@ export default function App() {
                             path="/dashboard"
                             element={
                                 <RequireAuth>
-                                    <DashboardLayout />
+                                    <TourProvider>
+                                        <DashboardLayout />
+                                    </TourProvider>
                                 </RequireAuth>
                             }
                         >
@@ -45,6 +49,7 @@ export default function App() {
                             <Route path="scorecard" element={<Scorecard />} />
                             <Route path="knowledge" element={<KnowledgeBase />} />
                             <Route path="settings" element={<Settings />} />
+                            <Route path="settings/proposal-template" element={<ProposalTemplateSettings />} />
                             <Route path="storage" element={<StorageBrowser />} />
                             <Route path="scoping" element={<ScopingList />} />
                             <Route path="scoping/new" element={<ScopingForm />} />

@@ -105,6 +105,7 @@ export function ChatWidget() {
         <>
             {/* Toggle */}
             <motion.button
+                data-tour="chat-widget"
                 className="fixed bottom-6 right-6 w-14 h-14 bg-s2p-primary text-white rounded-full shadow-xl shadow-blue-500/30 flex items-center justify-center z-50"
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.1 }}

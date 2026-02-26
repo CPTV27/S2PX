@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -17,7 +18,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatWidget } from './ChatWidget';
+import { TourOverlay } from './TourOverlay';
+import { TourTrigger } from './TourTrigger';
 import { useAuth } from '@/hooks/useAuth';
+import { useTour } from '@/hooks/useTour';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { CommandPalette } from './CommandPalette';
 
@@ -33,11 +37,32 @@ const navItems = [
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
 ] as const;
 
+const tourIdMap: Record<string, string> = {
+    '/dashboard': 'nav-dashboard',
+    '/dashboard/pipeline': 'nav-pipeline',
+    '/dashboard/production': 'nav-production',
+    '/dashboard/projects': 'nav-archive',
+    '/dashboard/revenue': 'nav-revenue',
+    '/dashboard/scorecard': 'nav-scorecard',
+    '/dashboard/knowledge': 'nav-knowledge',
+    '/dashboard/storage': 'nav-storage',
+    '/dashboard/settings': 'nav-settings',
+};
+
 export function DashboardLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { hasCompleted: tourCompleted, start: startTour } = useTour();
     const { isOpen: searchOpen, open: openSearch, close: closeSearch } = useCommandPalette();
+
+    // Auto-start tour on first visit
+    useEffect(() => {
+        if (!tourCompleted) {
+            const t = setTimeout(startTour, 800);
+            return () => clearTimeout(t);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleLogout = async () => {
         await logout();
@@ -60,7 +85,7 @@ export function DashboardLayout() {
                 className="w-20 lg:w-64 bg-s2p-sidebar-bg text-s2p-sidebar-fg border-r border-slate-700/50 flex flex-col fixed h-full z-50"
             >
                 {/* Logo */}
-                <div className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-700/50">
+                <div data-tour="sidebar-logo" className="h-20 flex items-center justify-center lg:justify-start lg:px-6 border-b border-slate-700/50">
                     <div className="w-10 h-10 bg-s2p-primary rounded-xl flex items-center justify-center text-white">
                         <ScanLine size={22} />
                     </div>
@@ -106,6 +131,7 @@ export function DashboardLayout() {
                                 key={item.path}
                                 to={item.path}
                                 className={classes}
+                                data-tour={tourIdMap[item.path]}
                             >
                                 <Icon size={20} className="min-w-[20px]" />
                                 <span className="hidden lg:block ml-3 text-sm font-medium">{item.label}</span>
@@ -115,7 +141,8 @@ export function DashboardLayout() {
                 </nav>
 
                 {/* Footer */}
-                <div className="p-3 border-t border-slate-700/50">
+                <div className="p-3 border-t border-slate-700/50 space-y-1">
+                    <TourTrigger />
                     <button
                         onClick={handleLogout}
                         className="flex items-center justify-center lg:justify-start w-full px-3 py-2.5 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800/50"
@@ -141,6 +168,7 @@ export function DashboardLayout() {
                         </div>
                         <button
                             onClick={openSearch}
+                            data-tour="search-button"
                             className="flex items-center gap-1.5 text-xs text-s2p-muted hover:text-s2p-fg bg-s2p-secondary hover:bg-s2p-secondary/80 px-2.5 py-1.5 rounded-lg border border-s2p-border transition-colors"
                             title="Search Knowledge Base (⌘K)"
                         >
@@ -166,6 +194,7 @@ export function DashboardLayout() {
 
             <ChatWidget />
             <CommandPalette isOpen={searchOpen} onClose={closeSearch} />
+            <TourOverlay />
         </div>
     );
 }
