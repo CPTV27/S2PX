@@ -19,6 +19,7 @@ import { ProductionPipeline } from './pages/ProductionPipeline';
 import { ProductionDetail } from './pages/ProductionDetail';
 import { FieldCapture } from './pages/FieldCapture';
 import { Scorecard } from './pages/Scorecard';
+import { UploadPortal } from './pages/UploadPortal';
 
 export default function App() {
     return (
@@ -27,6 +28,8 @@ export default function App() {
                 <ErrorBoundary>
                     <Routes>
                         <Route path="/login" element={<Login />} />
+                        {/* Upload Portal — public, no auth required (token-validated) */}
+                        <Route path="/upload/:token" element={<UploadPortal />} />
                         <Route
                             path="/dashboard"
                             element={

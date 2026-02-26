@@ -14,7 +14,7 @@ export interface StageConfig {
 }
 
 export const STAGE_CONFIGS: StageConfig[] = [
-    { id: 'scoping', label: 'Scoping', shortLabel: 'SCP', color: 'slate', order: 0 },
+    { id: 'scheduling', label: 'Scheduling', shortLabel: 'SCH', color: 'slate', order: 0 },
     { id: 'field_capture', label: 'Field Capture', shortLabel: 'FC', color: 'blue', order: 1 },
     { id: 'registration', label: 'Registration', shortLabel: 'RG', color: 'indigo', order: 2 },
     { id: 'bim_qc', label: 'BIM QC', shortLabel: 'BQ', color: 'violet', order: 3 },
@@ -156,7 +156,7 @@ export interface FinalDeliveryData {
 
 // Union type for stageData JSON
 export type StageData = {
-    scoping: Record<string, never>; // scoping stage has no separate data — it IS the scoping form
+    scheduling: Record<string, never>; // scheduling stage has no separate data — it IS the scoping form
     field_capture: FieldCaptureData;
     registration: RegistrationData;
     bim_qc: BimQcData;

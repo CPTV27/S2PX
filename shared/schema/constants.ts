@@ -145,7 +145,7 @@ export type FormStatus = (typeof FORM_STATUSES)[number];
 
 // Production pipeline stages
 export const PRODUCTION_STAGES = [
-    'scoping',
+    'scheduling',
     'field_capture',
     'registration',
     'bim_qc',

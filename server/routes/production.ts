@@ -54,14 +54,14 @@ router.post('/', async (req: Request, res: Response) => {
             });
         }
 
-        // Create at scoping stage (no prefill needed — it IS the scoping form)
+        // Create at scheduling stage (no prefill needed — it IS the scoping form)
         const [project] = await db
             .insert(productionProjects)
             .values({
                 scopingFormId,
                 upid: form.upid,
-                currentStage: 'scoping' as ProductionStage,
-                stageData: { scoping: {} },
+                currentStage: 'scheduling' as ProductionStage,
+                stageData: { scheduling: {} },
             })
             .returning();
 
@@ -289,7 +289,7 @@ router.get('/summary/stages', async (_req: Request, res: Response) => {
             GROUP BY current_stage
             ORDER BY
                 CASE current_stage
-                    WHEN 'scoping' THEN 0
+                    WHEN 'scheduling' THEN 0
                     WHEN 'field_capture' THEN 1
                     WHEN 'registration' THEN 2
                     WHEN 'bim_qc' THEN 3

@@ -54,8 +54,8 @@ describe('Prefill Cascade — Mapping Declarations', () => {
         expect(PREFILL_MAPPINGS.length).toBe(49);
     });
 
-    it('has 15 scoping→field_capture mappings', () => {
-        const count = PREFILL_MAPPINGS.filter(m => m.transition === 'scoping_to_field_capture').length;
+    it('has 15 scheduling→field_capture mappings', () => {
+        const count = PREFILL_MAPPINGS.filter(m => m.transition === 'scheduling_to_field_capture').length;
         expect(count).toBe(15);
     });
 
@@ -256,12 +256,12 @@ describe('Transform Functions', () => {
     });
 });
 
-// ── Cascade execution: Scoping → Field Capture ──
+// ── Cascade execution: Scheduling → Field Capture ──
 
-describe('Cascade: scoping → field_capture', () => {
+describe('Cascade: scheduling → field_capture', () => {
     it('prefills 15 fields (12 filled + 3 skipped)', () => {
         const form = baseForm();
-        const { data, results } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data, results } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(results.length).toBe(15);
         const filled = results.filter(r => !r.skipped);
         expect(filled.length).toBe(15); // All 15 are direct/transform/calc — no manual/blocked in this transition
@@ -269,13 +269,13 @@ describe('Cascade: scoping → field_capture', () => {
 
     it('FC-01: projectCode = UPID', () => {
         const form = baseForm();
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.projectCode).toBe('S2P-42-2026');
     });
 
     it('FC-02: address = projectAddress', () => {
         const form = baseForm();
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.address).toBe('123 Main St, Troy NY');
     });
 
@@ -286,55 +286,55 @@ describe('Cascade: scoping → field_capture', () => {
                 baseArea({ squareFootage: 15000 }),
             ],
         });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.estSF).toBe(25000);
     });
 
     it('FC-07: scope transformed from dropdown', () => {
         const form = baseForm();
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.scope).toEqual(['Interior', 'Exterior']); // "Full" → [Interior, Exterior]
     });
 
     it('FC-08: floors from numberOfFloors', () => {
         const form = baseForm({ numberOfFloors: 5 });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.floors).toBe(5);
     });
 
     it('FC-09: estScans calculated from density × SF', () => {
         const form = baseForm({ roomDensity: 2, areas: [baseArea({ squareFootage: 25000 })] });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.estScans).toBe(200); // ceil(8 * 25000 / 1000)
     });
 
     it('FC-18: baseLocation from dispatchLocation', () => {
         const form = baseForm({ dispatchLocation: 'Albany NY' });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.baseLocation).toBe('Albany NY');
     });
 
     it('FC-22: era from era', () => {
         const form = baseForm({ era: 'Historic' });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.era).toBe('Historic');
     });
 
     it('FC-24: buildingType from first area', () => {
         const form = baseForm({ areas: [baseArea({ areaType: 'Hospital' })] });
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.buildingType).toBe('Hospital');
     });
 
     it('FC-35: actPresent transformed from toggle+sqft', () => {
         const form = baseForm();
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.actPresent).toBe(true);
     });
 
     it('FC-36: belowFloor transformed from toggle+sqft', () => {
         const form = baseForm();
-        const { data } = executePrefillCascade('scoping', 'field_capture', form as any, {});
+        const { data } = executePrefillCascade('scheduling', 'field_capture', form as any, {});
         expect(data.belowFloor).toBe(false); // baseArea has belowFloor: { enabled: false }
     });
 });
@@ -533,13 +533,13 @@ describe('Cascade: pc_delivery → final_delivery', () => {
 
 describe('Utility Functions', () => {
     it('getMappingsForTransition returns correct subset', () => {
-        const mappings = getMappingsForTransition('scoping', 'field_capture');
+        const mappings = getMappingsForTransition('scheduling', 'field_capture');
         expect(mappings.length).toBe(15);
-        expect(mappings.every(m => m.transition === 'scoping_to_field_capture')).toBe(true);
+        expect(mappings.every(m => m.transition === 'scheduling_to_field_capture')).toBe(true);
     });
 
     it('getMappingSummary counts by type', () => {
-        const summary = getMappingSummary('scoping', 'field_capture');
+        const summary = getMappingSummary('scheduling', 'field_capture');
         expect(summary.total).toBe(15);
         expect(summary.byType.direct).toBe(11);
         expect(summary.byType.transform).toBe(3);

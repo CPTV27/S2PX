@@ -22,14 +22,34 @@ export interface Lead {
 export interface Project {
     id: number;
     leadId?: number;
+    upid?: string;
     projectName: string;
     clientName: string;
+    projectAddress?: string;
     status: string;
     scanDate?: string;
     deliveryDate?: string;
     deliverableType?: string;
     potreePath?: string;
     createdAt: string;
+}
+
+export interface ProjectDetailResponse {
+    project: Project;
+    scopingForm: Record<string, any>;
+    stageData: Record<string, any>;
+    assets: ProjectAssetSummary[];
+}
+
+export interface ProjectAssetSummary {
+    id: number;
+    bucket: string;
+    gcsPath: string;
+    label: string | null;
+    assetType: string;
+    fileCount: number | null;
+    totalSizeBytes: string | null;
+    linkedAt: string;
 }
 
 export interface Quote {

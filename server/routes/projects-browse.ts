@@ -2,6 +2,8 @@ import { Router, type Request, type Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { projectAssets } from '../../shared/schema/db.js';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -25,6 +27,7 @@ router.get('/', async (_req: Request, res: Response) => {
                 pp.scoping_form_id as lead_id,
                 sf.project_name,
                 sf.client_company as client_name,
+                sf.project_address,
                 pp.current_stage as status,
                 pp.created_at,
                 pp.stage_data
@@ -38,6 +41,7 @@ router.get('/', async (_req: Request, res: Response) => {
             leadId: row.lead_id,
             projectName: row.project_name,
             clientName: row.client_name,
+            projectAddress: row.project_address || undefined,
             status: row.status,
             scanDate: row.stage_data?.fieldCapture?.scanDate || undefined,
             deliveryDate: row.stage_data?.finalDelivery?.deliveryDate || undefined,
@@ -55,7 +59,7 @@ router.get('/', async (_req: Request, res: Response) => {
     }
 });
 
-// GET /api/projects/:id — single project (must be defined AFTER /gcs/* routes)
+// GET /api/projects/:id — full project detail with scoping form + assets
 router.get('/:id(\\d+)', async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id, 10);
@@ -63,11 +67,58 @@ router.get('/:id(\\d+)', async (req: Request, res: Response) => {
             SELECT
                 pp.id,
                 pp.scoping_form_id as lead_id,
-                sf.project_name,
-                sf.client_company as client_name,
+                pp.upid,
                 pp.current_stage as status,
+                pp.stage_data,
                 pp.created_at,
-                pp.stage_data
+                pp.updated_at as pp_updated_at,
+                sf.project_name,
+                sf.client_company,
+                sf.project_address,
+                sf.project_lat,
+                sf.project_lng,
+                sf.building_footprint_sqft,
+                sf.email,
+                sf.primary_contact_name,
+                sf.contact_email,
+                sf.contact_phone,
+                sf.billing_same_as_primary,
+                sf.billing_contact_name,
+                sf.billing_email,
+                sf.billing_phone,
+                sf.number_of_floors,
+                sf.basement_attic,
+                sf.est_sf_basement_attic,
+                sf.insurance_requirements,
+                sf.landscape_modeling,
+                sf.landscape_acres,
+                sf.landscape_terrain,
+                sf.bim_deliverable,
+                sf.bim_version,
+                sf.custom_template,
+                sf.georeferencing,
+                sf.era,
+                sf.room_density,
+                sf.risk_factors,
+                sf.scan_reg_only,
+                sf.expedited,
+                sf.dispatch_location,
+                sf.one_way_miles,
+                sf.travel_mode,
+                sf.est_timeline,
+                sf.project_timeline,
+                sf.timeline_notes,
+                sf.payment_terms,
+                sf.lead_source,
+                sf.probability,
+                sf.deal_stage,
+                sf.priority,
+                sf.pricing_tier,
+                sf.bim_manager,
+                sf.scanner_assignment,
+                sf.est_scan_days,
+                sf.techs_planned,
+                sf.internal_notes
             FROM production_projects pp
             JOIN scoping_forms sf ON sf.id = pp.scoping_form_id
             WHERE pp.id = ${id}
@@ -79,23 +130,92 @@ router.get('/:id(\\d+)', async (req: Request, res: Response) => {
         }
 
         const row: any = results.rows[0];
+
+        // Fetch linked assets
+        const assets = await db
+            .select()
+            .from(projectAssets)
+            .where(eq(projectAssets.productionProjectId, id));
+
         res.json({
-            id: row.id,
-            leadId: row.lead_id,
-            projectName: row.project_name,
-            clientName: row.client_name,
-            status: row.status,
-            scanDate: row.stage_data?.fieldCapture?.scanDate || undefined,
-            deliveryDate: row.stage_data?.finalDelivery?.deliveryDate || undefined,
-            deliverableType: undefined,
-            potreePath: undefined,
-            createdAt: row.created_at instanceof Date
-                ? row.created_at.toISOString()
-                : String(row.created_at),
+            project: {
+                id: row.id,
+                leadId: row.lead_id,
+                upid: row.upid,
+                projectName: row.project_name,
+                clientName: row.client_company,
+                projectAddress: row.project_address || undefined,
+                status: row.status,
+                scanDate: row.stage_data?.fieldCapture?.scanDate || undefined,
+                deliveryDate: row.stage_data?.finalDelivery?.deliveryDate || undefined,
+                createdAt: row.created_at instanceof Date
+                    ? row.created_at.toISOString()
+                    : String(row.created_at),
+            },
+            scopingForm: {
+                clientCompany: row.client_company,
+                projectName: row.project_name,
+                projectAddress: row.project_address,
+                projectLat: row.project_lat,
+                projectLng: row.project_lng,
+                buildingFootprintSqft: row.building_footprint_sqft,
+                email: row.email,
+                primaryContactName: row.primary_contact_name,
+                contactEmail: row.contact_email,
+                contactPhone: row.contact_phone,
+                billingSameAsPrimary: row.billing_same_as_primary,
+                billingContactName: row.billing_contact_name,
+                billingEmail: row.billing_email,
+                billingPhone: row.billing_phone,
+                numberOfFloors: row.number_of_floors,
+                basementAttic: row.basement_attic,
+                estSfBasementAttic: row.est_sf_basement_attic,
+                insuranceRequirements: row.insurance_requirements,
+                landscapeModeling: row.landscape_modeling,
+                landscapeAcres: row.landscape_acres,
+                landscapeTerrain: row.landscape_terrain,
+                bimDeliverable: row.bim_deliverable,
+                bimVersion: row.bim_version,
+                customTemplate: row.custom_template,
+                georeferencing: row.georeferencing,
+                era: row.era,
+                roomDensity: row.room_density,
+                riskFactors: row.risk_factors,
+                scanRegOnly: row.scan_reg_only,
+                expedited: row.expedited,
+                dispatchLocation: row.dispatch_location,
+                oneWayMiles: row.one_way_miles,
+                travelMode: row.travel_mode,
+                estTimeline: row.est_timeline,
+                projectTimeline: row.project_timeline,
+                timelineNotes: row.timeline_notes,
+                paymentTerms: row.payment_terms,
+                leadSource: row.lead_source,
+                probability: row.probability,
+                dealStage: row.deal_stage,
+                priority: row.priority,
+                pricingTier: row.pricing_tier,
+                bimManager: row.bim_manager,
+                scannerAssignment: row.scanner_assignment,
+                estScanDays: row.est_scan_days,
+                techsPlanned: row.techs_planned,
+                internalNotes: row.internal_notes,
+            },
+            stageData: row.stage_data || {},
+            assets: assets.map(a => ({
+                id: a.id,
+                bucket: a.bucket,
+                gcsPath: a.gcsPath,
+                label: a.label,
+                assetType: a.assetType,
+                fileCount: a.fileCount,
+                totalSizeBytes: a.totalSizeBytes,
+                linkedAt: a.linkedAt instanceof Date ? a.linkedAt.toISOString() : String(a.linkedAt),
+            })),
         });
     } catch (error: any) {
-        console.error('Get project error:', error);
-        res.status(500).json({ error: 'Failed to fetch project' });
+        console.error('Get project detail error:', error);
+        res.status(500).json({ error: 'Failed to fetch project detail' });
     }
 });
 

@@ -289,7 +289,7 @@ router.get('/production', async (req: Request, res: Response) => {
             WHERE created_at >= ${cutoff}
             GROUP BY current_stage
             ORDER BY CASE current_stage
-                WHEN 'scoping' THEN 1 WHEN 'field_capture' THEN 2
+                WHEN 'scheduling' THEN 1 WHEN 'field_capture' THEN 2
                 WHEN 'registration' THEN 3 WHEN 'bim_qc' THEN 4
                 WHEN 'pc_delivery' THEN 5 WHEN 'final_delivery' THEN 6 ELSE 7 END
         `);

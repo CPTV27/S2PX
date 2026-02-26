@@ -5,6 +5,7 @@ import { LineItemTable } from '@/components/pricing/LineItemTable';
 import { QuoteTotalsBar } from '@/components/pricing/QuoteTotalsBar';
 import { CEOSections } from '@/components/pricing/CEOSections';
 import { QBOSyncButton } from '@/components/pricing/QBOSyncButton';
+import { PropertyMap } from '@/components/PropertyMap';
 import { cn } from '@/lib/utils';
 
 export function DealWorkspace() {
@@ -152,19 +153,33 @@ export function DealWorkspace() {
 function ScopingSummary({ form }: { form: import('@/services/api').ScopingFormData }) {
     const areas = form.areas || [];
     return (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-            <div className="px-4 py-3 border-b border-slate-100">
-                <h2 className="text-sm font-semibold text-slate-700">Scoping Summary</h2>
-            </div>
-            <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <SummaryItem label="Areas" value={String(areas.length)} />
-                <SummaryItem label="Total SF" value={areas.reduce((s, a) => s + (a.squareFootage || 0), 0).toLocaleString()} />
-                <SummaryItem label="Floors" value={String(form.numberOfFloors || '—')} />
-                <SummaryItem label="Travel" value={`${form.oneWayMiles || 0} mi — ${form.travelMode || '—'}`} />
-                <SummaryItem label="Dispatch" value={form.dispatchLocation || '—'} />
-                <SummaryItem label="BIM" value={form.bimDeliverable || '—'} />
-                <SummaryItem label="Expedited" value={form.expedited ? 'Yes (+20%)' : 'No'} />
-                <SummaryItem label="Geo-Ref" value={form.georeferencing ? 'Yes' : 'No'} />
+        <div className="space-y-4">
+            {/* Map */}
+            {form.projectAddress && (
+                <PropertyMap
+                    address={form.projectAddress}
+                    lat={form.projectLat as any}
+                    lng={form.projectLng as any}
+                    footprintSqft={form.buildingFootprintSqft as any}
+                    scopingFormId={form.id}
+                    height={240}
+                />
+            )}
+
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+                <div className="px-4 py-3 border-b border-slate-100">
+                    <h2 className="text-sm font-semibold text-slate-700">Scoping Summary</h2>
+                </div>
+                <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <SummaryItem label="Areas" value={String(areas.length)} />
+                    <SummaryItem label="Total SF" value={areas.reduce((s, a) => s + (a.squareFootage || 0), 0).toLocaleString()} />
+                    <SummaryItem label="Floors" value={String(form.numberOfFloors || '—')} />
+                    <SummaryItem label="Travel" value={`${form.oneWayMiles || 0} mi — ${form.travelMode || '—'}`} />
+                    <SummaryItem label="Dispatch" value={form.dispatchLocation || '—'} />
+                    <SummaryItem label="BIM" value={form.bimDeliverable || '—'} />
+                    <SummaryItem label="Expedited" value={form.expedited ? 'Yes (+20%)' : 'No'} />
+                    <SummaryItem label="Geo-Ref" value={form.georeferencing ? 'Yes' : 'No'} />
+                </div>
             </div>
         </div>
     );

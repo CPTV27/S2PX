@@ -3,7 +3,7 @@
 // In dev, Vite proxies /api → localhost:5000.
 // In production, Firebase Hosting rewrites /api/** → Cloud Run (same-origin).
 
-import type { Lead, Project, Quote, Product, User, KpiStats, ScanRecord, GcsProjectFolder, GcsFolderEntry, ProjectAnalytics } from '../types';
+import type { Lead, Project, Quote, Product, User, KpiStats, ScanRecord, GcsProjectFolder, GcsFolderEntry, ProjectAnalytics, ProjectDetailResponse } from '../types';
 import { auth } from '@/services/firebase';
 import { signOut } from 'firebase/auth';
 
@@ -77,6 +77,10 @@ export async function fetchProjects(): Promise<Project[]> {
 }
 
 export async function fetchProject(id: number): Promise<Project> {
+    return request(`/api/projects/${id}`);
+}
+
+export async function fetchProjectDetail(id: number): Promise<ProjectDetailResponse> {
     return request(`/api/projects/${id}`);
 }
 
@@ -229,6 +233,9 @@ export interface ScopingFormData {
     clientCompany: string;
     projectName: string;
     projectAddress: string;
+    projectLat?: string | null;
+    projectLng?: string | null;
+    buildingFootprintSqft?: number | null;
     specificBuilding?: string;
     email: string;
     primaryContactName: string;
@@ -720,6 +727,61 @@ export async function fetchProfitabilityReport(filters?: ScorecardFilters) {
     );
 }
 
+// ── Upload Shares (Phase 12) ──
+
+export interface UploadShareData {
+    id: number;
+    productionProjectId: number;
+    token: string;
+    label: string | null;
+    targetBucket: string;
+    targetPrefix: string;
+    createdBy: string | null;
+    expiresAt: string;
+    maxUploadBytes: string | null;
+    totalUploadedBytes: string | null;
+    uploadCount: number | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    uploadUrl?: string;
+}
+
+export interface UploadShareFileData {
+    id: number;
+    shareId: number;
+    filename: string;
+    gcsPath: string;
+    sizeBytes: string;
+    contentType: string | null;
+    uploadedByName: string | null;
+    uploadedAt: string;
+}
+
+export async function createUploadShare(data: {
+    projectId: number;
+    label?: string;
+    expiresInDays?: number;
+    maxUploadBytes?: number;
+}): Promise<UploadShareData> {
+    return request('/api/upload-shares', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function fetchUploadShares(projectId: number): Promise<UploadShareData[]> {
+    return request(`/api/upload-shares?projectId=${projectId}`);
+}
+
+export async function revokeUploadShare(id: number): Promise<{ message: string }> {
+    return request(`/api/upload-shares/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchUploadShareFiles(id: number): Promise<UploadShareFileData[]> {
+    return request(`/api/upload-shares/${id}/files`);
+}
+
 // ── Health ──
 export async function checkHealth(): Promise<{ status: string }> {
     return request('/api/health');
@@ -813,4 +875,31 @@ export interface KBEditHistoryEntry {
 
 export async function fetchKBHistory(slug: string): Promise<KBEditHistoryEntry[]> {
     return request<KBEditHistoryEntry[]>(`/api/kb/sections/${slug}/history`);
+}
+
+// ── Geo / Maps (Phase 11) ──
+
+export interface GeoLookupResult {
+    lat: number;
+    lng: number;
+    footprintSqft: number | null;
+    formattedAddress: string;
+    placeId: string | null;
+}
+
+export async function geoLookup(address: string, scopingFormId?: number): Promise<GeoLookupResult> {
+    return request<GeoLookupResult>('/api/geo/lookup', {
+        method: 'POST',
+        body: JSON.stringify({ address, scopingFormId }),
+    });
+}
+
+export async function geoBatch(scopingFormIds: number[]): Promise<{
+    results: { id: number; status: string; lat?: number; lng?: number; footprintSqft?: number | null }[];
+    processed: number;
+}> {
+    return request('/api/geo/batch', {
+        method: 'POST',
+        body: JSON.stringify({ scopingFormIds }),
+    });
 }

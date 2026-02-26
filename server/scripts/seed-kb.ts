@@ -1,6 +1,6 @@
 /**
- * Seed Knowledge Base — imports the 15 Docusaurus markdown files
- * plus End Matter & Appendix C into kb_sections.
+ * Seed Knowledge Base — imports the 4 consolidated v4.1 markdown files
+ * into kb_sections.
  *
  * Run: npx tsx server/scripts/seed-kb.ts
  */
@@ -66,104 +66,37 @@ interface SectionDef {
 
 const SECTIONS: SectionDef[] = [
     {
-        file: 'intro.md',
-        slug: 'overview',
-        title: 'Overview',
-        emoji: '📑',
-        partNumber: null, partTitle: null, sectionNumber: null,
+        file: 'part-1-foundation.md',
+        slug: 'part-1-foundation',
+        title: 'Company Foundation & Team',
+        emoji: '🏗️',
+        partNumber: 1, partTitle: 'PART I: COMPANY FOUNDATION & TEAM', sectionNumber: 1,
         sortOrder: 0,
     },
     {
-        file: 'part-1-foundation/section-01-company-identity-positioning.md',
-        slug: 'section-01-company-identity',
-        title: 'Section 1: Company Identity & Positioning',
-        emoji: '🏛️',
-        partNumber: 1, partTitle: 'PART I: COMPANY FOUNDATION', sectionNumber: 1,
+        file: 'part-2-sales.md',
+        slug: 'part-2-sales',
+        title: 'Sales & Client Journey',
+        emoji: '🤝',
+        partNumber: 2, partTitle: 'PART II: SALES & CLIENT JOURNEY', sectionNumber: 2,
         sortOrder: 1,
     },
     {
-        file: 'part-1-foundation/section-02-organization-team.md',
-        slug: 'section-02-organization-team',
-        title: 'Section 2: Organization & Team',
-        emoji: '👥',
-        partNumber: 1, partTitle: 'PART I: COMPANY FOUNDATION', sectionNumber: 2,
+        file: 'part-3-technology.md',
+        slug: 'part-3-technology',
+        title: 'Technology, Standards & Delivery',
+        emoji: '🔧',
+        partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 3,
         sortOrder: 2,
     },
-    // Section 3 (Financial Profile) excluded — contains sensitive financial data
     {
-        file: 'part-2-sales/section-04-discovery-sales-process.md',
-        slug: 'section-04-discovery-sales',
-        title: 'Section 4: Discovery & Sales Process',
-        emoji: '🔍',
-        partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 4,
+        file: 'part-4-brand.md',
+        slug: 'part-4-brand',
+        title: 'Brand Systems & Communication',
+        emoji: '🎨',
+        partNumber: 4, partTitle: 'PART IV: BRAND SYSTEMS & COMMUNICATION', sectionNumber: 4,
         sortOrder: 3,
     },
-    {
-        file: 'part-2-sales/section-05-client-journey-project-execution.md',
-        slug: 'section-05-client-journey',
-        title: 'Section 5: Client Journey & Project Execution',
-        emoji: '👣',
-        partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 5,
-        sortOrder: 4,
-    },
-    {
-        file: 'part-2-sales/section-06-buyer-personas.md',
-        slug: 'section-06-buyer-personas',
-        title: 'Section 6: Buyer Personas',
-        emoji: '🎯',
-        partNumber: 2, partTitle: 'PART II: SALES & GO-TO-MARKET', sectionNumber: 6,
-        sortOrder: 5,
-    },
-    {
-        file: 'part-3-technology/section-07-technology-operations-infrastructure.md',
-        slug: 'section-07-technology-ops',
-        title: 'Section 7: Technology & Operations Infrastructure',
-        emoji: '⚙️',
-        partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 7,
-        sortOrder: 6,
-    },
-    {
-        file: 'part-3-technology/section-08-standards-technical-framework.md',
-        slug: 'section-08-standards',
-        title: 'Section 8: Standards & Technical Framework',
-        emoji: '📐',
-        partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 8,
-        sortOrder: 7,
-    },
-    {
-        file: 'part-3-technology/section-09-services-deliverables-coverage.md',
-        slug: 'section-09-services',
-        title: 'Section 9: Services, Deliverables & Coverage',
-        emoji: '📦',
-        partNumber: 3, partTitle: 'PART III: TECHNOLOGY, STANDARDS & DELIVERY', sectionNumber: 9,
-        sortOrder: 8,
-    },
-    // Section 10 (FY2026 Strategy) excluded — contains sensitive financial targets
-    {
-        file: 'part-4-strategy/section-11-competitive-landscape.md',
-        slug: 'section-11-competitive',
-        title: 'Section 11: Competitive Landscape',
-        emoji: '🏁',
-        partNumber: 4, partTitle: 'PART IV: STRATEGY & GROWTH', sectionNumber: 11,
-        sortOrder: 9,
-    },
-    {
-        file: 'part-4-strategy/section-12-content-brand-systems.md',
-        slug: 'section-12-brand',
-        title: 'Section 12: Content & Brand Systems',
-        emoji: '🎨',
-        partNumber: 4, partTitle: 'PART IV: STRATEGY & GROWTH', sectionNumber: 12,
-        sortOrder: 10,
-    },
-    {
-        file: 'part-5-operations/section-13-systems-architecture-operations.md',
-        slug: 'section-13-systems',
-        title: 'Section 13: Systems Architecture & Operations',
-        emoji: '🗄️',
-        partNumber: 5, partTitle: 'PART V: OPERATIONS & SYSTEMS', sectionNumber: 13,
-        sortOrder: 11,
-    },
-    // Appendix B (Data Dictionary) excluded — contains cost model, rate cards, pricing multipliers
 ];
 
 async function main() {

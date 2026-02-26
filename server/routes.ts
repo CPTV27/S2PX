@@ -13,6 +13,8 @@ import projectBrowseRoutes from './routes/projects-browse.js';
 import cpqRoutes from './routes/cpq.js';
 import scorecardRoutes from './routes/scorecard.js';
 import kbRoutes from './routes/kb.js';
+import geoRoutes from './routes/geo.js';
+import uploadShareRoutes from './routes/upload-shares.js';
 
 export async function registerRoutes(app: Express) {
     registerHealthRoutes(app);
@@ -30,4 +32,6 @@ export async function registerRoutes(app: Express) {
     app.use('/api/production', assetRoutes); // /api/production/:id/assets/*
     app.use('/api/scorecard', scorecardRoutes);
     app.use('/api/kb', kbRoutes);
+    app.use('/api/geo', geoRoutes);
+    app.use('/api/upload-shares', uploadShareRoutes);
 }

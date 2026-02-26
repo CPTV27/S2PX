@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { requireAuth } from './middleware/auth.js';
 import { registerRoutes } from './routes.js';
+import { uploadSharePublicRouter } from './routes/upload-shares.js';
 
 const app = express();
 const PORT = parseInt(process.env.SERVER_PORT || process.env.PORT || '5001', 10);
@@ -21,6 +22,10 @@ app.use(cors({
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Public routes — mounted BEFORE requireAuth so they bypass Firebase auth.
+// Token-validated internally (upload share token, not Firebase token).
+app.use('/api/public/upload', uploadSharePublicRouter);
 
 // Auth middleware on all /api routes (health check skipped inside middleware)
 app.use('/api', requireAuth);

@@ -9,23 +9,23 @@ import type { PrefillMapping, StageData } from '../types/production';
 
 export const PREFILL_MAPPINGS: PrefillMapping[] = [
     // ═══════════════════════════════════════════
-    // Scoping → Field Capture (15 prefills)
+    // Scheduling → Field Capture (15 prefills)
     // ═══════════════════════════════════════════
-    { targetId: 'FC-01', targetField: 'projectCode',  sourceId: 'SF-54', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Project Code (UPID)' },
-    { targetId: 'FC-02', targetField: 'address',       sourceId: 'SF-01', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Project Address' },
-    { targetId: 'FC-06', targetField: 'estSF',         sourceId: 'SF-03', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Estimated Square Footage' },
-    { targetId: 'FC-07', targetField: 'scope',         sourceId: 'SF-04', transition: 'scoping_to_field_capture', type: 'transform',   description: 'Scope (dropdown → checkbox array)', transformKey: 'scopeToCheckboxArray' },
-    { targetId: 'FC-08', targetField: 'floors',        sourceId: 'SF-31', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Number of Floors' },
-    { targetId: 'FC-09', targetField: 'estScans',      sourceId: 'SF-03', transition: 'scoping_to_field_capture', type: 'calculation', description: 'Est. Scans (ScansPerKSF × SF/1000)', transformKey: 'calcEstScans' },
-    { targetId: 'FC-18', targetField: 'baseLocation',  sourceId: 'SF-32', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Base / Dispatch Location' },
-    { targetId: 'FC-22', targetField: 'era',           sourceId: 'SF-41', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Era (Modern/Historic)' },
-    { targetId: 'FC-23', targetField: 'density',       sourceId: 'SF-42', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Room Density (0-4)' },
-    { targetId: 'FC-24', targetField: 'buildingType',  sourceId: 'SF-02', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Building Type' },
-    { targetId: 'FC-31', targetField: 'scanDays',      sourceId: 'SF-48', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Est. Scan Days (CEO)' },
-    { targetId: 'FC-32', targetField: 'numTechs',      sourceId: 'SF-49', transition: 'scoping_to_field_capture', type: 'direct',      description: '# Techs Planned (CEO)' },
-    { targetId: 'FC-33', targetField: 'pricingTier',   sourceId: 'SF-45', transition: 'scoping_to_field_capture', type: 'direct',      description: 'Pricing Tier (CEO)' },
-    { targetId: 'FC-35', targetField: 'actPresent',    sourceId: 'SF-24', transition: 'scoping_to_field_capture', type: 'transform',   description: 'ACT Present (Y/N+sqft → Y/N)', transformKey: 'toggleSqftToBoolean' },
-    { targetId: 'FC-36', targetField: 'belowFloor',    sourceId: 'SF-44', transition: 'scoping_to_field_capture', type: 'transform',   description: 'Below Floor (Y/N+sqft → Y/N)', transformKey: 'toggleSqftToBoolean' },
+    { targetId: 'FC-01', targetField: 'projectCode',  sourceId: 'SF-54', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Project Code (UPID)' },
+    { targetId: 'FC-02', targetField: 'address',       sourceId: 'SF-01', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Project Address' },
+    { targetId: 'FC-06', targetField: 'estSF',         sourceId: 'SF-03', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Estimated Square Footage' },
+    { targetId: 'FC-07', targetField: 'scope',         sourceId: 'SF-04', transition: 'scheduling_to_field_capture', type: 'transform',   description: 'Scope (dropdown → checkbox array)', transformKey: 'scopeToCheckboxArray' },
+    { targetId: 'FC-08', targetField: 'floors',        sourceId: 'SF-31', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Number of Floors' },
+    { targetId: 'FC-09', targetField: 'estScans',      sourceId: 'SF-03', transition: 'scheduling_to_field_capture', type: 'calculation', description: 'Est. Scans (ScansPerKSF × SF/1000)', transformKey: 'calcEstScans' },
+    { targetId: 'FC-18', targetField: 'baseLocation',  sourceId: 'SF-32', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Base / Dispatch Location' },
+    { targetId: 'FC-22', targetField: 'era',           sourceId: 'SF-41', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Era (Modern/Historic)' },
+    { targetId: 'FC-23', targetField: 'density',       sourceId: 'SF-42', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Room Density (0-4)' },
+    { targetId: 'FC-24', targetField: 'buildingType',  sourceId: 'SF-02', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Building Type' },
+    { targetId: 'FC-31', targetField: 'scanDays',      sourceId: 'SF-48', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Est. Scan Days (CEO)' },
+    { targetId: 'FC-32', targetField: 'numTechs',      sourceId: 'SF-49', transition: 'scheduling_to_field_capture', type: 'direct',      description: '# Techs Planned (CEO)' },
+    { targetId: 'FC-33', targetField: 'pricingTier',   sourceId: 'SF-45', transition: 'scheduling_to_field_capture', type: 'direct',      description: 'Pricing Tier (CEO)' },
+    { targetId: 'FC-35', targetField: 'actPresent',    sourceId: 'SF-24', transition: 'scheduling_to_field_capture', type: 'transform',   description: 'ACT Present (Y/N+sqft → Y/N)', transformKey: 'toggleSqftToBoolean' },
+    { targetId: 'FC-36', targetField: 'belowFloor',    sourceId: 'SF-44', transition: 'scheduling_to_field_capture', type: 'transform',   description: 'Below Floor (Y/N+sqft → Y/N)', transformKey: 'toggleSqftToBoolean' },
 
     // ═══════════════════════════════════════════
     // Field Capture → Registration (12 prefills)

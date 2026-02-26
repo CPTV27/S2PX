@@ -39,6 +39,9 @@ export const scopingForms = pgTable('scoping_forms', {
     clientCompany: text('client_company').notNull(),
     projectName: text('project_name').notNull(),
     projectAddress: text('project_address').notNull(),
+    projectLat: numeric('project_lat', { precision: 10, scale: 7 }),
+    projectLng: numeric('project_lng', { precision: 11, scale: 7 }),
+    buildingFootprintSqft: integer('building_footprint_sqft'),
     specificBuilding: text('specific_building'),
     email: text('email').notNull(),
 
@@ -222,7 +225,7 @@ export const productionProjects = pgTable('production_projects', {
         .notNull()
         .references(() => scopingForms.id),
     upid: text('upid').notNull(),
-    currentStage: text('current_stage').notNull(), // scoping | field_capture | registration | bim_qc | pc_delivery | final_delivery
+    currentStage: text('current_stage').notNull(), // scheduling | field_capture | registration | bim_qc | pc_delivery | final_delivery
     stageData: jsonb('stage_data').notNull(), // per-stage field values
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -336,5 +339,60 @@ export const kbEditHistoryRelations = relations(kbEditHistory, ({ one }) => ({
     section: one(kbSections, {
         fields: [kbEditHistory.sectionId],
         references: [kbSections.id],
+    }),
+}));
+
+// ── Upload Shares ──
+// Token-based upload links for external team members (no login required).
+export const uploadShares = pgTable('upload_shares', {
+    id: serial('id').primaryKey(),
+    productionProjectId: integer('production_project_id')
+        .notNull()
+        .references(() => productionProjects.id, { onDelete: 'cascade' }),
+    token: text('token').notNull().unique(),
+    label: text('label'),
+    targetBucket: text('target_bucket').notNull(),
+    targetPrefix: text('target_prefix').notNull(),
+    createdBy: integer('created_by').references(() => users.id),
+    expiresAt: timestamp('expires_at').notNull(),
+    maxUploadBytes: text('max_upload_bytes'), // stored as text for bigint
+    totalUploadedBytes: text('total_uploaded_bytes').default('0'),
+    uploadCount: integer('upload_count').default(0),
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── Upload Share Files ──
+// Individual files uploaded through a share link.
+export const uploadShareFiles = pgTable('upload_share_files', {
+    id: serial('id').primaryKey(),
+    shareId: integer('share_id')
+        .notNull()
+        .references(() => uploadShares.id, { onDelete: 'cascade' }),
+    filename: text('filename').notNull(),
+    gcsPath: text('gcs_path').notNull(),
+    sizeBytes: text('size_bytes').notNull(), // text for bigint
+    contentType: text('content_type'),
+    uploadedByName: text('uploaded_by_name'),
+    uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
+});
+
+export const uploadSharesRelations = relations(uploadShares, ({ one, many }) => ({
+    productionProject: one(productionProjects, {
+        fields: [uploadShares.productionProjectId],
+        references: [productionProjects.id],
+    }),
+    createdByUser: one(users, {
+        fields: [uploadShares.createdBy],
+        references: [users.id],
+    }),
+    files: many(uploadShareFiles),
+}));
+
+export const uploadShareFilesRelations = relations(uploadShareFiles, ({ one }) => ({
+    share: one(uploadShares, {
+        fields: [uploadShareFiles.shareId],
+        references: [uploadShares.id],
     }),
 }));

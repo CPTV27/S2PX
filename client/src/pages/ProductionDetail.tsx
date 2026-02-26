@@ -13,6 +13,7 @@ import { STAGE_CONFIGS, getStageConfig, getNextStage } from '@shared/types/produ
 import type { ProductionStage } from '@shared/schema/constants';
 import { StageTransition } from '@/components/production/StageTransition';
 import { ProjectAssets } from '@/components/production/ProjectAssets';
+import { PropertyMap } from '@/components/PropertyMap';
 import { cn } from '@/lib/utils';
 
 // ── Field definition per stage (what to render in the form) ──
@@ -279,6 +280,18 @@ export function ProductionDetail() {
             {/* Stage progress bar */}
             <StageProgressBar currentStage={project.currentStage as ProductionStage} />
 
+            {/* Property map */}
+            {project.projectAddress && (
+                <div className="mt-4">
+                    <PropertyMap
+                        address={project.projectAddress}
+                        height={200}
+                        interactive={true}
+                        showFootprint={true}
+                    />
+                </div>
+            )}
+
             {/* Content grid */}
             <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6 mt-4">
                 {/* Prefilled fields (read-only) */}
@@ -322,11 +335,11 @@ export function ProductionDetail() {
                     </div>
                 )}
 
-                {/* Scoping stage: no fields, show summary */}
-                {project.currentStage === 'scoping' && (
+                {/* Scheduling stage: no fields, show summary */}
+                {project.currentStage === 'scheduling' && (
                     <div className="col-span-full bg-white rounded-lg border border-slate-200 shadow-sm p-6 text-center">
                         <p className="text-sm text-slate-500 mb-2">
-                            This project is at the Scoping stage. The scoping form is the source of truth.
+                            This project is at the Scheduling stage. The scoping form is the source of truth.
                         </p>
                         <button
                             onClick={() => navigate(`/dashboard/scoping/${project.scopingFormId}`)}

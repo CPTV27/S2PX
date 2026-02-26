@@ -39,7 +39,7 @@ export function getStatusColor(status: string): string {
         'completed': 'bg-slate-100 text-slate-600',
         'on_hold': 'bg-yellow-100 text-yellow-700',
         // Production stages
-        'scoping': 'bg-blue-100 text-blue-700',
+        'scheduling': 'bg-blue-100 text-blue-700',
         'field_capture': 'bg-cyan-100 text-cyan-700',
         'registration': 'bg-indigo-100 text-indigo-700',
         'bim_qc': 'bg-violet-100 text-violet-700',
