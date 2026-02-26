@@ -724,3 +724,93 @@ export async function fetchProfitabilityReport(filters?: ScorecardFilters) {
 export async function checkHealth(): Promise<{ status: string }> {
     return request('/api/health');
 }
+
+// ── Knowledge Base ──
+export interface KBSectionMeta {
+    id: number;
+    slug: string;
+    title: string;
+    emoji: string | null;
+    partNumber: number | null;
+    partTitle: string | null;
+    sectionNumber: number | null;
+    sortOrder: number;
+    wordCount: number;
+    version: number;
+    editedBy: string | null;
+    updatedAt: string;
+}
+
+export interface KBSection extends KBSectionMeta {
+    content: string;
+    contentPlain: string;
+}
+
+export interface KBSearchResult {
+    id: number;
+    slug: string;
+    title: string;
+    emoji: string | null;
+    part_title: string | null;
+    section_number: number | null;
+    snippet: string;
+    rank: number;
+}
+
+export async function fetchKBSections(): Promise<KBSectionMeta[]> {
+    return request<KBSectionMeta[]>('/api/kb/sections');
+}
+
+export async function fetchKBSection(slug: string): Promise<KBSection> {
+    return request<KBSection>(`/api/kb/sections/${slug}`);
+}
+
+export async function searchKB(q: string): Promise<{ results: KBSearchResult[] }> {
+    return request<{ results: KBSearchResult[] }>(`/api/kb/search?q=${encodeURIComponent(q)}`);
+}
+
+export async function updateKBSection(slug: string, data: { content: string; editSummary: string; version: number; editedBy: string }): Promise<KBSection> {
+    return request<KBSection>(`/api/kb/sections/${slug}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export interface KBChatResponse {
+    response: string;
+    citations: { slug: string; title: string }[];
+    sources: { slug: string; title: string }[];
+}
+
+export async function sendKBChat(
+    message: string,
+    history?: { role: 'user' | 'model'; text: string }[],
+    sectionSlugs?: string[]
+): Promise<KBChatResponse> {
+    return request<KBChatResponse>('/api/kb/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, history, sectionSlugs }),
+    });
+}
+
+export interface KBAIEditResponse {
+    proposedContent: string;
+    originalContent: string;
+    sectionTitle: string;
+}
+
+export async function requestKBAIEdit(slug: string, instruction: string): Promise<KBAIEditResponse> {
+    return request<KBAIEditResponse>(`/api/kb/sections/${slug}/ai-edit`, {
+        method: 'POST',
+        body: JSON.stringify({ instruction }),
+    });
+}
+
+export interface KBEditHistoryEntry {
+    id: number;
+    editedBy: string;
+    editSummary: string | null;
+    version: number;
+    createdAt: string;
+}
+
+export async function fetchKBHistory(slug: string): Promise<KBEditHistoryEntry[]> {
+    return request<KBEditHistoryEntry[]>(`/api/kb/sections/${slug}/history`);
+}

@@ -9,7 +9,7 @@ import { Pipeline } from './pages/Pipeline';
 import { QuoteBuilder } from './pages/QuoteBuilder';
 import { Projects } from './pages/Projects';
 import { Revenue } from './pages/Revenue';
-import { Knowledge } from './pages/Knowledge';
+import { KnowledgeBase } from './pages/KnowledgeBase';
 import { PricingRules } from './pages/PricingRules';
 import { Settings } from './pages/Settings';
 import { NotebookCPQ } from './pages/NotebookCPQ';
@@ -44,7 +44,7 @@ export default function App() {
                             <Route path="projects" element={<Projects />} />
                             <Route path="revenue" element={<Revenue />} />
                             <Route path="scorecard" element={<Scorecard />} />
-                            <Route path="knowledge" element={<Knowledge />} />
+                            <Route path="knowledge" element={<KnowledgeBase />} />
                             <Route path="pricing-rules" element={<PricingRules />} />
                             <Route path="settings" element={<Settings />} />
                             <Route path="notebook-cpq" element={<NotebookCPQ />} />

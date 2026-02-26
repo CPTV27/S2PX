@@ -17,10 +17,13 @@ import {
     ClipboardList,
     Factory,
     Activity,
+    Search,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatWidget } from './ChatWidget';
 import { useAuth } from '@/hooks/useAuth';
+import { useCommandPalette } from '@/hooks/useCommandPalette';
+import { CommandPalette } from './CommandPalette';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -42,6 +45,7 @@ export function DashboardLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { isOpen: searchOpen, open: openSearch, close: closeSearch } = useCommandPalette();
 
     const handleLogout = async () => {
         await logout();
@@ -143,6 +147,15 @@ export function DashboardLayout() {
                             <Sparkles size={12} className="text-s2p-primary" />
                             <span>Gemini 2.5</span>
                         </div>
+                        <button
+                            onClick={openSearch}
+                            className="flex items-center gap-1.5 text-xs text-s2p-muted hover:text-s2p-fg bg-s2p-secondary hover:bg-s2p-secondary/80 px-2.5 py-1.5 rounded-lg border border-s2p-border transition-colors"
+                            title="Search Knowledge Base (⌘K)"
+                        >
+                            <Search size={12} />
+                            <span className="hidden md:inline">Search</span>
+                            <kbd className="hidden md:inline text-[10px] bg-white/80 px-1 py-0.5 rounded border border-s2p-border font-mono">⌘K</kbd>
+                        </button>
                         <div className="text-right hidden md:block">
                             <div className="text-sm font-semibold">{displayName}</div>
                             <div className="text-xs text-s2p-muted capitalize">{user?.role ?? 'User'}</div>
@@ -160,6 +173,7 @@ export function DashboardLayout() {
             </main>
 
             <ChatWidget />
+            <CommandPalette isOpen={searchOpen} onClose={closeSearch} />
         </div>
     );
 }

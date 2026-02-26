@@ -295,3 +295,46 @@ export const projectAssetsRelations = relations(projectAssets, ({ one }) => ({
         references: [productionProjects.id],
     }),
 }));
+
+// ── Knowledge Base Sections ──
+// Stores the MKB v4 content as editable sections with FTS support.
+export const kbSections = pgTable('kb_sections', {
+    id: serial('id').primaryKey(),
+    slug: text('slug').notNull().unique(),
+    title: text('title').notNull(),
+    emoji: text('emoji'),
+    partNumber: integer('part_number'),
+    partTitle: text('part_title'),
+    sectionNumber: integer('section_number'),
+    sortOrder: integer('sort_order').notNull(),
+    content: text('content').notNull(),
+    contentPlain: text('content_plain').notNull(),
+    wordCount: integer('word_count').default(0),
+    editedBy: text('edited_by'),
+    version: integer('version').default(1),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── Knowledge Base Edit History ──
+export const kbEditHistory = pgTable('kb_edit_history', {
+    id: serial('id').primaryKey(),
+    sectionId: integer('section_id').notNull().references(() => kbSections.id, { onDelete: 'cascade' }),
+    previousContent: text('previous_content').notNull(),
+    newContent: text('new_content').notNull(),
+    editedBy: text('edited_by').notNull(),
+    editSummary: text('edit_summary'),
+    version: integer('version').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const kbSectionsRelations = relations(kbSections, ({ many }) => ({
+    editHistory: many(kbEditHistory),
+}));
+
+export const kbEditHistoryRelations = relations(kbEditHistory, ({ one }) => ({
+    section: one(kbSections, {
+        fields: [kbEditHistory.sectionId],
+        references: [kbSections.id],
+    }),
+}));

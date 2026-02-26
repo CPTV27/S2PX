@@ -4,7 +4,7 @@
 import { Router, type Request, type Response } from 'express';
 import { db } from '../db.js';
 import { productionProjects, scopingForms, scopeAreas, projectAssets } from '../../shared/schema/db.js';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, and } from 'drizzle-orm';
 import { executePrefillCascade } from '../../shared/engine/prefillCascade.js';
 import { PRODUCTION_STAGES, type ProductionStage } from '../../shared/schema/constants.js';
 import { getNextStage } from '../../shared/types/production.js';
@@ -91,7 +91,7 @@ router.get('/', async (req: Request, res: Response) => {
                 assetCount: sql<number>`(SELECT COUNT(*)::int FROM project_assets WHERE production_project_id = ${productionProjects.id})`.as('asset_count'),
             })
             .from(productionProjects)
-            .innerJoin(scopingForms, eq(productionProjects.scopingFormId, scopingForms.id))
+            .leftJoin(scopingForms, eq(productionProjects.scopingFormId, scopingForms.id))
             .orderBy(desc(productionProjects.updatedAt))
             .$dynamic();
 
@@ -111,6 +111,9 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ error: 'Invalid project ID' });
+        }
         const [project] = await db
             .select({
                 id: productionProjects.id,
@@ -126,7 +129,7 @@ router.get('/:id', async (req: Request, res: Response) => {
                 assetCount: sql<number>`(SELECT COUNT(*)::int FROM project_assets WHERE production_project_id = ${productionProjects.id})`.as('asset_count'),
             })
             .from(productionProjects)
-            .innerJoin(scopingForms, eq(productionProjects.scopingFormId, scopingForms.id))
+            .leftJoin(scopingForms, eq(productionProjects.scopingFormId, scopingForms.id))
             .where(eq(productionProjects.id, id));
 
         if (!project) {
