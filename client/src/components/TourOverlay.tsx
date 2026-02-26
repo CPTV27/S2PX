@@ -64,13 +64,18 @@ export function TourOverlay() {
         };
     }, [step, measureTarget]);
 
-    // Re-measure on resize / scroll
+    // Re-measure on resize / scroll (debounced to avoid layout thrashing)
     useEffect(() => {
         if (!isActive) return;
-        const handler = () => measureTarget();
+        let rafId: number | null = null;
+        const handler = () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(measureTarget);
+        };
         window.addEventListener('resize', handler);
         window.addEventListener('scroll', handler, true);
         return () => {
+            if (rafId) cancelAnimationFrame(rafId);
             window.removeEventListener('resize', handler);
             window.removeEventListener('scroll', handler, true);
         };
