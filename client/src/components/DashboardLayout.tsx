@@ -14,6 +14,9 @@ import {
     ScanLine,
     BookOpenCheck,
     HardDrive,
+    ClipboardList,
+    Factory,
+    Activity,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatWidget } from './ChatWidget';
@@ -21,10 +24,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: ClipboardList, label: 'Scoping', path: '/dashboard/scoping' },
+    { icon: Factory, label: 'Production', path: '/dashboard/production' },
     { icon: Users, label: 'Pipeline', path: '/dashboard/pipeline' },
     { icon: MessageSquareDashed, label: 'AI Quotes', path: '/dashboard/quotes' },
     { icon: FolderKanban, label: 'Projects', path: '/dashboard/projects' },
     { icon: BarChart3, label: 'Revenue', path: '/dashboard/revenue' },
+    { icon: Activity, label: 'Scorecard', path: '/dashboard/scorecard' },
     { icon: BookOpen, label: 'Knowledge Base', path: '/dashboard/knowledge' },
     { icon: SlidersHorizontal, label: 'Pricing Rules', path: '/dashboard/pricing-rules' },
     { icon: BookOpenCheck, label: 'Notebook CPQ', path: '/dashboard/notebook-cpq' },
@@ -63,8 +69,8 @@ export function DashboardLayout() {
                         <ScanLine size={22} />
                     </div>
                     <div className="hidden lg:block ml-3">
-                        <span className="font-bold text-lg text-white tracking-tight">Scan2Plan</span>
-                        <span className="block text-[10px] uppercase tracking-widest text-slate-400 font-mono">Studio</span>
+                        <span className="font-bold text-lg text-white tracking-tight">S2P<span className="text-blue-400">X</span></span>
+                        <span className="block text-[10px] uppercase tracking-widest text-slate-400 font-mono">Scan2Plan OS</span>
                     </div>
                 </div>
 
@@ -129,7 +135,7 @@ export function DashboardLayout() {
                 {/* Header */}
                 <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-s2p-border px-8 py-4 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xs font-mono text-s2p-muted uppercase tracking-widest">Scan2Plan OS</h2>
+                        <h2 className="text-xs font-mono text-s2p-muted uppercase tracking-widest">Scan2Plan OS X</h2>
                         <h1 className="text-xl font-semibold text-s2p-fg">Operations Center</h1>
                     </div>
                     <div className="flex items-center gap-4">
