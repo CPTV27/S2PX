@@ -38,6 +38,8 @@ export default defineConfig(({ mode }) => {
                 '**/cypress/**',
                 '**/.{idea,git,cache,output,temp}/**',
                 '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
+                // Legacy tsx-runner test — runs via `npx tsx`, not vitest's test() API
+                '**/pricing.test.ts',
             ],
         },
         server: {
