@@ -184,3 +184,64 @@ export interface ScantechAIResponse {
         warnings: string[];
     };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// PM Dashboard — Back-Office Field View (Phase 19)
+// ═══════════════════════════════════════════════════════════════
+
+/** Aggregated field summary for PM Mission Control dashboard */
+export interface PMFieldSummary {
+    projectId: number;
+    upid: string;
+    projectName: string | null;
+    clientCompany: string | null;
+    projectAddress: string | null;
+    currentStage: string;
+
+    // Checklist rollup
+    checklists: {
+        id: number;
+        slug: string;
+        title: string;
+        checklistType: string;
+        totalItems: number;
+        completedItems: number;
+        requiredItems: number;
+        requiredCompleted: number;
+        status: string; // not_started | in_progress | complete | flagged
+        respondedByName: string | null;
+        completedAt: string | null;
+        updatedAt: string | null;
+    }[];
+
+    // Upload rollup (grouped by category)
+    uploads: {
+        total: number;
+        byCategory: {
+            category: FileCategory;
+            count: number;
+            totalBytes: string; // BigInt as string
+        }[];
+        recentUploads: FieldUploadRecord[];
+    };
+
+    // Field notes summary
+    notes: {
+        total: number;
+        recent: FieldNote[];
+        aiAssistedCount: number;
+    };
+
+    // Scoping snapshot for diff view
+    scopingData: ScantechScopingSnapshot | null;
+
+    // Stage data from production
+    fieldCaptureData: Record<string, unknown> | null;
+}
+
+/** Signed download URL response for field uploads */
+export interface FieldDownloadUrl {
+    url: string;
+    filename: string;
+    expiresAt: string; // ISO timestamp
+}

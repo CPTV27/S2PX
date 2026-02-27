@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Loader2, Building2, MapPin, ChevronRight,
     CheckCircle, AlertCircle, Lock, Pencil, Eye,
+    Radio, ClipboardList,
 } from 'lucide-react';
 import {
     fetchProductionProject,
@@ -15,6 +16,11 @@ import { StageTransition } from '@/components/production/StageTransition';
 import { ProjectAssets } from '@/components/production/ProjectAssets';
 import { PropertyMap } from '@/components/PropertyMap';
 import { cn } from '@/lib/utils';
+
+// Lazy-load PM Dashboard (heavy component tree)
+const ProjectFieldView = lazy(() =>
+    import('@/components/dashboard/ProjectFieldView').then(m => ({ default: m.ProjectFieldView }))
+);
 
 // ── Field definition per stage (what to render in the form) ──
 
@@ -155,6 +161,7 @@ export function ProductionDetail() {
     const [editValues, setEditValues] = useState<Record<string, unknown>>({});
     const [saving, setSaving] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
+    const [activeTab, setActiveTab] = useState<'stage' | 'field'>('stage');
 
     const loadProject = useCallback(async () => {
         if (!projectId) return;
@@ -292,69 +299,116 @@ export function ProductionDetail() {
                 </div>
             )}
 
-            {/* Content grid */}
-            <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6 mt-4">
-                {/* Prefilled fields (read-only) */}
-                {prefilledFields.length > 0 && (
-                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-                            <Eye size={14} className="text-blue-500" />
-                            <h2 className="text-sm font-semibold text-slate-700">Prefilled from Cascade</h2>
-                            <span className="text-[10px] text-slate-400 ml-auto">{prefilledFields.length} fields</span>
-                        </div>
-                        <div className="p-4 space-y-3">
-                            {prefilledFields.map(field => (
-                                <PrefilledField
-                                    key={field.key}
-                                    field={field}
-                                    value={editValues[field.key]}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Manual entry fields */}
-                {manualFields.length > 0 && (
-                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-                            <Pencil size={14} className="text-emerald-500" />
-                            <h2 className="text-sm font-semibold text-slate-700">Manual Entry</h2>
-                            <span className="text-[10px] text-slate-400 ml-auto">{manualFields.length} fields</span>
-                        </div>
-                        <div className="p-4 space-y-3">
-                            {manualFields.map(field => (
-                                <EditableField
-                                    key={field.key}
-                                    field={field}
-                                    value={editValues[field.key]}
-                                    onChange={(val) => handleFieldChange(field.key, val)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Scheduling stage: no fields, show summary */}
-                {project.currentStage === 'scheduling' && (
-                    <div className="col-span-full bg-white rounded-lg border border-slate-200 shadow-sm p-6 text-center">
-                        <p className="text-sm text-slate-500 mb-2">
-                            This project is at the Scheduling stage. The scoping form is the source of truth.
-                        </p>
-                        <button
-                            onClick={() => navigate(`/dashboard/scoping/${project.scopingFormId}`)}
-                            className="text-sm text-blue-600 hover:underline"
-                        >
-                            View Scoping Form
-                        </button>
-                    </div>
-                )}
+            {/* ── Tab Bar: Stage Data vs Field Data ── */}
+            <div className="flex items-center gap-1 mt-4 border-b border-slate-200">
+                <button
+                    onClick={() => setActiveTab('stage')}
+                    className={cn(
+                        'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+                        activeTab === 'stage'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-600',
+                    )}
+                >
+                    <Pencil size={13} />
+                    Stage Data
+                </button>
+                <button
+                    onClick={() => setActiveTab('field')}
+                    className={cn(
+                        'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+                        activeTab === 'field'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-slate-400 hover:text-slate-600',
+                    )}
+                >
+                    <Radio size={13} />
+                    Field Data
+                    <span className="text-[9px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full ml-0.5">
+                        LIVE
+                    </span>
+                </button>
             </div>
 
-            {/* Project Assets */}
-            {projectId && (
-                <div className="mt-6 bg-white rounded-lg border border-slate-200 shadow-sm p-4">
-                    <ProjectAssets projectId={projectId} upid={project.upid} />
+            {/* ── Tab Content ── */}
+            {activeTab === 'stage' ? (
+                <>
+                    {/* Content grid */}
+                    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6 mt-4">
+                        {/* Prefilled fields (read-only) */}
+                        {prefilledFields.length > 0 && (
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                                    <Eye size={14} className="text-blue-500" />
+                                    <h2 className="text-sm font-semibold text-slate-700">Prefilled from Cascade</h2>
+                                    <span className="text-[10px] text-slate-400 ml-auto">{prefilledFields.length} fields</span>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    {prefilledFields.map(field => (
+                                        <PrefilledField
+                                            key={field.key}
+                                            field={field}
+                                            value={editValues[field.key]}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Manual entry fields */}
+                        {manualFields.length > 0 && (
+                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                                    <Pencil size={14} className="text-emerald-500" />
+                                    <h2 className="text-sm font-semibold text-slate-700">Manual Entry</h2>
+                                    <span className="text-[10px] text-slate-400 ml-auto">{manualFields.length} fields</span>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    {manualFields.map(field => (
+                                        <EditableField
+                                            key={field.key}
+                                            field={field}
+                                            value={editValues[field.key]}
+                                            onChange={(val) => handleFieldChange(field.key, val)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Scheduling stage: no fields, show summary */}
+                        {project.currentStage === 'scheduling' && (
+                            <div className="col-span-full bg-white rounded-lg border border-slate-200 shadow-sm p-6 text-center">
+                                <p className="text-sm text-slate-500 mb-2">
+                                    This project is at the Scheduling stage. The scoping form is the source of truth.
+                                </p>
+                                <button
+                                    onClick={() => navigate(`/dashboard/scoping/${project.scopingFormId}`)}
+                                    className="text-sm text-blue-600 hover:underline"
+                                >
+                                    View Scoping Form
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Project Assets */}
+                    {projectId && (
+                        <div className="mt-6 bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                            <ProjectAssets projectId={projectId} upid={project.upid} />
+                        </div>
+                    )}
+                </>
+            ) : (
+                /* ── Field Data Tab: PM Mission Control ── */
+                <div className="mt-4">
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center h-48">
+                            <Loader2 className="animate-spin text-blue-500" size={20} />
+                        </div>
+                    }>
+                        {projectId && <ProjectFieldView projectId={projectId} />}
+                    </Suspense>
                 </div>
             )}
 

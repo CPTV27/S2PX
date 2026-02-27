@@ -1109,6 +1109,8 @@ import type {
     CaptureMethod,
     ScantechAIRequest,
     ScantechAIResponse,
+    PMFieldSummary,
+    FieldDownloadUrl,
 } from '@shared/types/scantech';
 
 // Re-export for convenience
@@ -1124,6 +1126,8 @@ export type {
     CaptureMethod,
     ScantechAIRequest,
     ScantechAIResponse,
+    PMFieldSummary,
+    FieldDownloadUrl,
 };
 
 /** List projects in scheduling/field_capture stage */
@@ -1213,4 +1217,42 @@ export async function scantechAIAssist(
         method: 'POST',
         body: JSON.stringify(data),
     });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PM Dashboard — Back-Office Field View (Phase 19)
+// ═══════════════════════════════════════════════════════════════
+
+/** Aggregated field summary for PM Mission Control */
+export async function fetchPMFieldSummary(projectId: number): Promise<PMFieldSummary> {
+    return request(`/api/pm/projects/${projectId}/field-summary`);
+}
+
+/** Full upload list with pagination */
+export async function fetchPMUploads(
+    projectId: number,
+    opts?: { category?: string; limit?: number; offset?: number },
+): Promise<{ uploads: FieldUploadRecord[]; total: number; limit: number; offset: number }> {
+    const params = new URLSearchParams();
+    if (opts?.category) params.set('category', opts.category);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.offset) params.set('offset', String(opts.offset));
+    const qs = params.toString();
+    return request(`/api/pm/projects/${projectId}/uploads${qs ? `?${qs}` : ''}`);
+}
+
+/** Generate signed download URL for a field upload */
+export async function getFieldDownloadUrl(
+    projectId: number,
+    uploadId: number,
+): Promise<FieldDownloadUrl> {
+    return request(`/api/pm/projects/${projectId}/uploads/${uploadId}/download`);
+}
+
+/** Generate signed thumbnail URL for a photo/video upload */
+export async function getFieldThumbnailUrl(
+    projectId: number,
+    uploadId: number,
+): Promise<{ url: string; filename: string; contentType: string }> {
+    return request(`/api/pm/projects/${projectId}/uploads/${uploadId}/thumbnail`);
 }
