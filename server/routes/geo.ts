@@ -184,4 +184,57 @@ router.post('/batch', async (req: Request, res: Response) => {
     }
 });
 
+// ── Distance Matrix — driving distance between two addresses ──
+router.post('/distance', async (req: Request, res: Response) => {
+    try {
+        const { origin, destination } = req.body as {
+            origin: string;
+            destination: string;
+        };
+
+        if (!origin?.trim() || !destination?.trim()) {
+            return res.status(400).json({ error: 'origin and destination are required' });
+        }
+
+        if (!GOOGLE_MAPS_API_KEY) {
+            return res.status(500).json({ error: 'GOOGLE_MAPS_API_KEY not configured' });
+        }
+
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&units=imperial&key=${GOOGLE_MAPS_API_KEY}`;
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (data.status !== 'OK') {
+            return res.status(502).json({
+                error: `Distance Matrix API error: ${data.status}`,
+                detail: data.error_message || 'Request failed',
+            });
+        }
+
+        const element = data.rows?.[0]?.elements?.[0];
+        if (!element || element.status !== 'OK') {
+            return res.status(404).json({
+                error: `No route found: ${element?.status || 'UNKNOWN'}`,
+                detail: 'Could not calculate driving distance between the addresses',
+            });
+        }
+
+        // distance.value is in meters, convert to miles
+        const distanceMiles = Math.round(element.distance.value / 1609.34);
+        // duration.value is in seconds, convert to minutes
+        const durationMinutes = Math.round(element.duration.value / 60);
+
+        res.json({
+            distanceMiles,
+            durationMinutes,
+            originAddress: data.origin_addresses?.[0] || origin,
+            destinationAddress: data.destination_addresses?.[0] || destination,
+        });
+    } catch (error: any) {
+        console.error('Distance matrix error:', error);
+        res.status(500).json({ error: error.message || 'Distance calculation failed' });
+    }
+});
+
 export default router;

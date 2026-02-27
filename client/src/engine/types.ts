@@ -25,6 +25,8 @@ export interface QuoteInput {
   marginTarget: number;        // 0.35 to 0.60
   paymentTerms: string;        // "partner", "net30", etc.
   risks: string[];             // Global risks applied to all areas
+  mileageRate?: number;        // $/mi override (null = use default constant)
+  scanDayFee?: number;         // scan day fee override (null = use default $300)
 }
 
 export interface LineItem {

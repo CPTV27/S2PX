@@ -8,6 +8,13 @@
       "when": 1772136612016,
       "tag": "0000_careless_toad_men",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772173597141,
+      "tag": "0001_fuzzy_salo",
+      "breakpoints": true
     }
   ]
 }

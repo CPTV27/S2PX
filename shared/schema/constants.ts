@@ -73,6 +73,14 @@ export const SCAN_REG_OPTIONS = [
 // Section I — Dispatch Locations (SF-32)
 export const DISPATCH_LOCATIONS = ['Troy NY', 'Woodstock NY', 'Brooklyn NY', 'Other'] as const;
 
+// Section I — Dispatch location addresses for Google Maps Distance Matrix API
+export const DISPATCH_ADDRESSES: Record<string, string> = {
+    'Troy NY': 'Troy, NY',
+    'Woodstock NY': 'Woodstock, NY',
+    'Brooklyn NY': 'Brooklyn, NY',
+    'Other': '',
+};
+
 // Section I — Travel Modes (SF-50)
 export const TRAVEL_MODES = ['Local', 'NYC Small', 'NYC Regional', 'Overnight', 'Flight'] as const;
 

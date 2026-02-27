@@ -76,6 +76,8 @@ export const scopingFormSchema = z.object({
     oneWayMiles: z.coerce.number().int().min(0),
     travelMode: z.string().min(1, 'Required'),
     customTravelCost: z.coerce.number().optional(),
+    mileageRate: z.coerce.number().min(0).optional(),
+    scanDayFeeOverride: z.coerce.number().min(0).optional(),
     // Section M
     estTimeline: z.string().optional().default(''),
     projectTimeline: z.string().optional().default(''),

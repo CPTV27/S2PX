@@ -266,6 +266,8 @@ export interface ScopingFormData {
     oneWayMiles: number;
     travelMode: string;
     customTravelCost?: number;
+    mileageRate?: number;
+    scanDayFeeOverride?: number;
     estTimeline?: string;
     projectTimeline?: string;
     timelineNotes?: string;
@@ -951,6 +953,20 @@ export async function geoBatch(scopingFormIds: number[]): Promise<{
     return request('/api/geo/batch', {
         method: 'POST',
         body: JSON.stringify({ scopingFormIds }),
+    });
+}
+
+export interface DistanceResult {
+    distanceMiles: number;
+    durationMinutes: number;
+    originAddress: string;
+    destinationAddress: string;
+}
+
+export async function fetchDrivingDistance(origin: string, destination: string): Promise<DistanceResult> {
+    return request<DistanceResult>('/api/geo/distance', {
+        method: 'POST',
+        body: JSON.stringify({ origin, destination }),
     });
 }
 

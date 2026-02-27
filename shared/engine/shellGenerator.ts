@@ -37,6 +37,8 @@ export interface ScopingFormInput {
     oneWayMiles: number;
     travelMode: string;
     customTravelCost?: number | string | null;
+    mileageRate?: number | string | null;
+    scanDayFeeOverride?: number | string | null;
     // Areas
     areas: ScopeAreaInput[];
 }
@@ -193,13 +195,15 @@ function generateProjectShells(form: ScopingFormInput, areaShells: LineItemShell
     const shells: LineItemShell[] = [];
 
     // Rule 7: Travel line — always present
+    const mileageRate = form.mileageRate != null ? Number(form.mileageRate) : null;
+    const rateSuffix = mileageRate != null ? ` — $${mileageRate}/mi` : '';
     shells.push({
         id: nextId(),
         areaId: null,
         areaName: 'Project-Level',
         category: 'travel',
         discipline: 'travel',
-        description: `Travel — ${form.dispatchLocation} — ${form.oneWayMiles} mi one-way — ${form.travelMode}`,
+        description: `Travel — ${form.dispatchLocation} → ${form.oneWayMiles} mi — ${form.travelMode}${rateSuffix}`,
         buildingType: '',
         upteamCost: null,
         clientPrice: null,

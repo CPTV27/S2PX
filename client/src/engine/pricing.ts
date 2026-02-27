@@ -124,21 +124,26 @@ export function calculateLandscapeAreaPricing(
 // ---------------------------------------------------------------------------
 // 7. calculateStandardTravel — standard dispatch travel
 // ---------------------------------------------------------------------------
-export function calculateStandardTravel(distance: number): TravelResult {
-  const baseCost = distance * TRAVEL_RATES.standard;
-  const scanDayFee = distance >= TRAVEL_RATES.scanDayFeeThreshold
-    ? TRAVEL_RATES.scanDayFee : 0;
+export function calculateStandardTravel(
+  distance: number,
+  rateOverride?: number,
+  scanDayFeeOverride?: number,
+): TravelResult {
+  const rate = rateOverride ?? TRAVEL_RATES.standard;
+  const scanDayFeeAmount = distance >= TRAVEL_RATES.scanDayFeeThreshold
+    ? (scanDayFeeOverride ?? TRAVEL_RATES.scanDayFee) : 0;
+  const baseCost = distance * rate;
 
-  let label = `Travel - ${distance} mi @ $${TRAVEL_RATES.standard}/mi`;
-  if (scanDayFee > 0) {
-    label += ` + $${TRAVEL_RATES.scanDayFee} scan day fee`;
+  let label = `Travel - ${distance} mi @ $${rate}/mi`;
+  if (scanDayFeeAmount > 0) {
+    label += ` + $${scanDayFeeAmount} scan day fee`;
   }
 
   return {
     baseCost,
     extraMilesCost: 0,
-    scanDayFee,
-    totalCost: baseCost + scanDayFee,
+    scanDayFee: scanDayFeeAmount,
+    totalCost: baseCost + scanDayFeeAmount,
     label,
   };
 }
@@ -155,17 +160,22 @@ export function getBrooklynTravelTier(totalSqft: number): string {
 // ---------------------------------------------------------------------------
 // 9. calculateBrooklynTravel — Brooklyn travel (NO scan day fee)
 // ---------------------------------------------------------------------------
-export function calculateBrooklynTravel(distance: number, totalProjectSqft: number): TravelResult {
+export function calculateBrooklynTravel(
+  distance: number,
+  totalProjectSqft: number,
+  rateOverride?: number,
+): TravelResult {
   const tier = getBrooklynTravelTier(totalProjectSqft);
   const tierLabel = tier === "tierA" ? "Tier A" : (tier === "tierB" ? "Tier B" : "Tier C");
   const baseCost = BROOKLYN_BASE_FEES[tier];
+  const rate = rateOverride ?? TRAVEL_RATES.brooklyn;
 
   const extraMiles = Math.max(0, distance - TRAVEL_RATES.brooklynThreshold);
-  const extraMilesCost = extraMiles * TRAVEL_RATES.brooklyn;
+  const extraMilesCost = extraMiles * rate;
 
   let label = `Travel - Brooklyn ${tierLabel} ($${baseCost} base`;
   if (extraMilesCost > 0) {
-    label += ` + ${extraMiles} mi @ $${TRAVEL_RATES.brooklyn}/mi`;
+    label += ` + ${extraMiles} mi @ $${rate}/mi`;
   }
   label += ")";
 
@@ -484,10 +494,10 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
     }
   }
 
-  // Step 4: Travel calculation
+  // Step 4: Travel calculation (with optional per-project rate overrides)
   const travel = input.dispatchLocation.toUpperCase() === "BROOKLYN"
-    ? calculateBrooklynTravel(input.distance, totalProjectSqft)
-    : calculateStandardTravel(input.distance);
+    ? calculateBrooklynTravel(input.distance, totalProjectSqft, input.mileageRate)
+    : calculateStandardTravel(input.distance, input.mileageRate, input.scanDayFee);
 
   // Add travel as a line item
   if (travel.totalCost > 0) {

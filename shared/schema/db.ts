@@ -86,6 +86,8 @@ export const scopingForms = pgTable('scoping_forms', {
     oneWayMiles: integer('one_way_miles').notNull(),
     travelMode: text('travel_mode').notNull(),
     customTravelCost: numeric('custom_travel_cost', { precision: 12, scale: 2 }),
+    mileageRate: numeric('mileage_rate', { precision: 6, scale: 2 }),
+    scanDayFeeOverride: numeric('scan_day_fee', { precision: 8, scale: 2 }),
 
     // Section M — Timeline & Payment
     estTimeline: text('est_timeline'),

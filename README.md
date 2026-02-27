@@ -32,7 +32,7 @@ s2px/
 
 ---
 
-## Database Schema (13 tables)
+## Database Schema (21 tables)
 
 | Table | Purpose |
 |-------|---------|
@@ -49,6 +49,14 @@ s2px/
 | `kb_edit_history` | KB revision audit log |
 | `upload_shares` | Token-based external upload links (client file collection) |
 | `upload_share_files` | Per-file audit trail for upload shares |
+| `qbo_customers` | QuickBooks customer records |
+| `qbo_sales_transactions` | QBO sales transaction history |
+| `qbo_estimates` | QBO estimate records with acceptance tracking |
+| `qbo_pnl_monthly` | Profit & Loss by month |
+| `qbo_balance_sheet` | Balance sheet snapshots |
+| `qbo_expenses_by_vendor` | Expense summaries by vendor |
+| `chat_channels` | Team chat channels with Google Chat webhook URLs |
+| `team_messages` | Channel messages with soft-delete and threading |
 
 ---
 
@@ -129,6 +137,45 @@ s2px/
 - Template selector in ProposalBuilder
 - 9-11 page PDF with variable substitution and LoD table highlighting
 
+### Phase 14: Interactive Guided Tour
+- 14-step walkthrough of all S2PX features
+- Auto-starts on first visit, re-triggerable from sidebar
+- Spotlight overlay with step-by-step navigation
+- Context-aware routing (navigates to relevant pages during tour)
+
+### Phase 15: Financial Data Ingestion (QBO Enhancement)
+- QuickBooks CSV import pipeline (Sales, Estimates, P&L, Balance Sheet, Expenses, Customers)
+- 6 new DB tables: `qbo_sales_transactions`, `qbo_estimates`, `qbo_pnl_monthly`, `qbo_balance_sheet`, `qbo_expenses_by_vendor`, `qbo_customers`
+- Revenue dashboard overhaul: 6 tabs with actual QBO data (Revenue, P&L, Estimates, Balance Sheet, Expenses, Customers)
+- CFO AI Agent powered by Gemini 2.5 Pro (contextual financial Q&A with chart generation)
+
+### Phase 16: Team Chat
+- Native team messaging system with PostgreSQL-backed channels
+- Real-time message polling (3-second intervals) with optimistic sends
+- Channel management (create, rename, emoji, descriptions)
+- Google Chat webhook forwarding (outbound sync to Google Chat spaces)
+- 4 default channels: General, Field Ops, BIM Production, Sales
+
+### Phase 17: Travel Enhancement
+- Google Maps Distance Matrix API integration for auto-distance calculation
+- "Calculate" button auto-fills one-way miles from dispatch location to project address
+- Editable per-project mileage rate ($/mi) and scan day fee overrides
+- Live travel cost preview with real-time calculation
+- Rate overrides flow through pricing engine (`calculateStandardTravel`, `calculateBrooklynTravel`)
+
+### Performance Optimization
+- Route-level code splitting with React.lazy (16 lazy-loaded pages)
+- Manual vendor chunk splitting (react, recharts, framer-motion, firebase)
+- Lazy tab data fetching on Revenue and Scorecard pages
+- CSS transitions replacing heavy framer-motion animations
+- Initial bundle: ~840KB (down from 2.1MB)
+
+### E2E Testing (Playwright)
+- 330 Playwright tests across 4 spec files
+- Full coverage: Dashboard, Pipeline, Revenue (6 tabs), Scorecard (4 tabs)
+- Data integrity validation, accessibility checks, tab navigation
+- All tests run against mock API responses (no external dependencies)
+
 ---
 
 ## Routes
@@ -176,8 +223,10 @@ s2px/
 | Upload Shares | `GET/POST /api/upload-shares`, `DELETE /api/upload-shares/:id`, `GET /api/upload-shares/:id/files` |
 | Scorecard | `GET /api/scorecard/{overview,pipeline,production,profitability}` |
 | Knowledge Base | `GET /api/kb/sections`, `GET/PUT /api/kb/sections/:slug`, `GET /api/kb/search`, `POST /api/kb/chat`, AI edit |
-| Geo | `POST /api/geo/lookup`, `POST /api/geo/batch` |
+| Geo | `POST /api/geo/lookup`, `POST /api/geo/batch`, `POST /api/geo/distance` |
 | GCS | `GET /api/projects/gcs/{folders,browse,download,analytics}` |
+| Team Chat | `GET/POST /api/chat/channels`, `PATCH /api/chat/channels/:id`, `GET/POST /api/chat/channels/:id/messages`, `GET /api/chat/channels/:id/messages/poll`, `PATCH/DELETE /api/chat/messages/:id` |
+| Financials | `GET /api/financials/{revenue-actual,pnl,estimates,balance-sheet,expenses,customers}` |
 | Health | `GET /api/health` |
 
 ---
@@ -257,7 +306,7 @@ The `shared/` directory contains framework-agnostic business logic used by both 
 
 | Module | Purpose |
 |--------|---------|
-| `shared/schema/db.ts` | Drizzle ORM table definitions (13 tables) |
+| `shared/schema/db.ts` | Drizzle ORM table definitions (21 tables) |
 | `shared/engine/shellGenerator.ts` | 13-rule line item generator (scoping form -> LineItemShell[]) |
 | `shared/engine/quoteTotals.ts` | `computeQuoteTotals()` with margin integrity guardrails |
 | `shared/engine/prefillCascade.ts` | 49 production stage prefill mappings |
@@ -269,11 +318,16 @@ The `shared/` directory contains framework-agnostic business logic used by both 
 ## Testing
 
 ```
-117/117 tests passing (Vitest)
-
+Unit Tests — 117/117 passing (Vitest)
   shared/engine/__tests__/shellGenerator.test.ts    29 tests
   shared/engine/__tests__/prefillCascade.test.ts    77 tests
   shared/engine/__tests__/quoteTotals.test.ts       11 tests
+
+E2E Tests — 330/330 passing (Playwright)
+  e2e/dashboard.spec.ts     Dashboard KPIs, navigation, layout
+  e2e/pipeline.spec.ts      Kanban board, drag-and-drop, stage management
+  e2e/revenue.spec.ts       6-tab revenue dashboard, CFO Agent, QBO data
+  e2e/scorecard.spec.ts     4-tab scorecard, data integrity, accessibility
 ```
 
 ---
@@ -301,4 +355,4 @@ Firebase Hosting rewrites `/api/**` to Cloud Run, so the frontend and API share 
 
 ---
 
-*Built with TypeScript. 13 phases shipped. Zero compromises.*
+*Built with TypeScript. 17 phases shipped. 447 tests passing. Zero compromises.*
