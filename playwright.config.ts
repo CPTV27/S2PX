@@ -17,9 +17,28 @@ export default defineConfig({
     },
 
     projects: [
+        // ── Desktop Chrome (existing E2E suites) ──
         {
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
+            testMatch: [
+                'navigation.spec.ts',
+                'revenue.spec.ts',
+                'scorecard.spec.ts',
+                'data-integrity.spec.ts',
+                'pm-dashboard.spec.ts',
+            ],
+        },
+
+        // ── Mobile — Scantech field ops (iPhone 13) ──
+        {
+            name: 'scantech-mobile',
+            use: {
+                ...devices['iPhone 13'],
+                hasTouch: true,
+                isMobile: true,
+            },
+            testMatch: ['scantech.spec.ts'],
         },
     ],
 
