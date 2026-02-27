@@ -1,21 +1,81 @@
 // ── Proposal Routes ──
-// Generate PDF proposals, email to clients, client portal access.
+// Generate PDF proposals, upload to GCS, email to clients, client portal access.
 
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import crypto from 'crypto';
+import { Storage } from '@google-cloud/storage';
 import { db } from '../db';
 import { proposals, quotes, scopingForms, scopeAreas, proposalTemplates } from '../../shared/schema/db';
 import { eq } from 'drizzle-orm';
 import type { TemplateData } from '../lib/proposalDataMapper';
 import { generateProposalPDF } from '../pdf/proposalGenerator';
 import { mapToProposalData } from '../lib/proposalDataMapper';
-import { sendProposalEmail, buildProposalEmailHtml } from '../lib/emailSender';
+import { sendProposalEmail, buildProposalEmailHtml, sendClientResponseNotification } from '../lib/emailSender';
 import type { LineItemShell, QuoteTotals } from '../../shared/types/lineItem';
 
 const router = Router();
+const GCS_BUCKET = process.env.GCS_BUCKET || 's2p-core-vault';
 
+// ── Helpers ──
+
+/** Upload PDF buffer to GCS and return the gcs path (not a signed URL). */
+async function uploadPdfToGcs(pdfBuffer: Buffer, upid: string, version: number): Promise<string> {
+    const storage = new Storage();
+    const bucket = storage.bucket(GCS_BUCKET);
+    const timestamp = Date.now();
+    const gcsPath = `proposals/${upid}/proposal-v${version}-${timestamp}.pdf`;
+    const blob = bucket.file(gcsPath);
+
+    await blob.save(pdfBuffer, {
+        contentType: 'application/pdf',
+        metadata: { upid, version: String(version) },
+    });
+
+    return gcsPath;
+}
+
+/** Resolve a proposal's pdfUrl to a downloadable Buffer (handles both GCS path and legacy base64). */
+async function resolvePdfBuffer(pdfUrl: string | null): Promise<Buffer | null> {
+    if (!pdfUrl) return null;
+
+    // Legacy base64 format
+    if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+        const base64 = pdfUrl.replace('data:application/pdf;base64,', '');
+        return Buffer.from(base64, 'base64');
+    }
+
+    // GCS path
+    const storage = new Storage();
+    const bucket = storage.bucket(GCS_BUCKET);
+    const [buffer] = await bucket.file(pdfUrl).download();
+    return buffer;
+}
+
+/** Generate a short-lived signed URL for a GCS path. Returns the URL directly for legacy base64. */
+async function resolveSignedUrl(pdfUrl: string | null): Promise<string | null> {
+    if (!pdfUrl) return null;
+
+    // Legacy base64 — return as-is (client can handle data URIs)
+    if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+        return pdfUrl;
+    }
+
+    // GCS path — generate 1-hour signed URL
+    const storage = new Storage();
+    const bucket = storage.bucket(GCS_BUCKET);
+    const [signedUrl] = await bucket.file(pdfUrl).getSignedUrl({
+        version: 'v4',
+        action: 'read',
+        expires: Date.now() + 60 * 60 * 1000, // 1 hour
+    });
+    return signedUrl;
+}
+
+
+// ══════════════════════════════════════════════════════════════
 // POST /api/proposals/:quoteId/generate — Generate a proposal PDF
+// ══════════════════════════════════════════════════════════════
 router.post('/:quoteId/generate', async (req: Request, res: Response) => {
     try {
         const quoteId = parseInt(req.params.quoteId, 10);
@@ -89,9 +149,9 @@ router.post('/:quoteId/generate', async (req: Request, res: Response) => {
         // Generate access token for client portal
         const accessToken = crypto.randomBytes(32).toString('hex');
 
-        // TODO: Upload to GCS and store URL
-        // For now, we store the PDF inline as base64 (will be replaced with GCS upload)
-        const pdfUrl = `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
+        // Upload PDF to GCS
+        const upid = form.upid || `form-${form.id}`;
+        const pdfUrl = await uploadPdfToGcs(pdfBuffer, upid, version);
 
         // Create proposal record
         const [proposal] = await db.insert(proposals).values({
@@ -122,7 +182,10 @@ router.post('/:quoteId/generate', async (req: Request, res: Response) => {
     }
 });
 
+
+// ══════════════════════════════════════════════════════════════
 // POST /api/proposals/:id/send — Email the proposal to the client
+// ══════════════════════════════════════════════════════════════
 router.post('/:id/send', async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id, 10);
@@ -154,13 +217,13 @@ router.post('/:id/send', async (req: Request, res: Response) => {
             customMessage: proposal.customMessage,
         });
 
-        // Build PDF attachment
+        // Download PDF from GCS (or decode legacy base64) for email attachment
         let attachments: { filename: string; content: Buffer; contentType: string }[] = [];
-        if (proposal.pdfUrl?.startsWith('data:application/pdf;base64,')) {
-            const base64 = proposal.pdfUrl.replace('data:application/pdf;base64,', '');
+        const pdfBuffer = await resolvePdfBuffer(proposal.pdfUrl);
+        if (pdfBuffer) {
             attachments = [{
                 filename: `${form.upid}-proposal-v${proposal.version}.pdf`,
-                content: Buffer.from(base64, 'base64'),
+                content: pdfBuffer,
                 contentType: 'application/pdf',
             }];
         }
@@ -185,7 +248,37 @@ router.post('/:id/send', async (req: Request, res: Response) => {
     }
 });
 
+
+// ══════════════════════════════════════════════════════════════
+// GET /api/proposals/:id/download — Download proposal PDF (authenticated)
+// ══════════════════════════════════════════════════════════════
+router.get('/:id/download', async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        const [proposal] = await db.select().from(proposals).where(eq(proposals.id, id));
+        if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+
+        const [form] = await db.select().from(scopingForms)
+            .where(eq(scopingForms.id, proposal.scopingFormId));
+
+        const pdfBuffer = await resolvePdfBuffer(proposal.pdfUrl);
+        if (!pdfBuffer) return res.status(404).json({ message: 'PDF not found' });
+
+        const filename = `${form?.upid || 'proposal'}-v${proposal.version}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('Error downloading proposal:', err);
+        res.status(500).json({ message: 'Failed to download proposal' });
+    }
+});
+
+
+// ══════════════════════════════════════════════════════════════
 // GET /api/proposals/:quoteId/status — Get proposal status for a quote
+// ══════════════════════════════════════════════════════════════
 router.get('/:quoteId/status', async (req: Request, res: Response) => {
     try {
         const quoteId = parseInt(req.params.quoteId, 10);
@@ -197,10 +290,12 @@ router.get('/:quoteId/status', async (req: Request, res: Response) => {
             id: p.id,
             status: p.status,
             version: p.version,
+            accessToken: p.accessToken,
             sentTo: p.sentTo,
             sentAt: p.sentAt,
             viewedAt: p.viewedAt,
             respondedAt: p.respondedAt,
+            clientMessage: p.clientMessage,
             createdAt: p.createdAt,
         })));
     } catch (err) {
@@ -209,7 +304,10 @@ router.get('/:quoteId/status', async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/client-portal/:token — Client magic link (public, no auth)
+
+// ══════════════════════════════════════════════════════════════
+// GET /api/proposals/client-portal/:token — Client magic link (public, no auth)
+// ══════════════════════════════════════════════════════════════
 router.get('/client-portal/:token', async (req: Request, res: Response) => {
     try {
         const { token } = req.params;
@@ -217,6 +315,11 @@ router.get('/client-portal/:token', async (req: Request, res: Response) => {
             .where(eq(proposals.accessToken, token));
 
         if (!proposal) return res.status(404).json({ message: 'Proposal not found or link expired' });
+
+        // Check expiry
+        if (proposal.expiresAt && new Date(proposal.expiresAt) < new Date()) {
+            return res.status(410).json({ message: 'This proposal link has expired' });
+        }
 
         // Mark as viewed if first time
         if (!proposal.viewedAt) {
@@ -232,13 +335,16 @@ router.get('/client-portal/:token', async (req: Request, res: Response) => {
         const [quote] = await db.select().from(quotes)
             .where(eq(quotes.id, proposal.quoteId));
 
+        // Generate signed URL for PDF (1 hour)
+        const signedPdfUrl = await resolveSignedUrl(proposal.pdfUrl);
+
         res.json({
             proposal: {
                 id: proposal.id,
                 status: proposal.viewedAt ? proposal.status : 'viewed',
                 version: proposal.version,
                 customMessage: proposal.customMessage,
-                pdfUrl: proposal.pdfUrl,
+                pdfUrl: signedPdfUrl,
             },
             project: form ? {
                 name: form.projectName,
@@ -251,6 +357,63 @@ router.get('/client-portal/:token', async (req: Request, res: Response) => {
     } catch (err) {
         console.error('Error loading client portal:', err);
         res.status(500).json({ message: 'Failed to load proposal' });
+    }
+});
+
+
+// ══════════════════════════════════════════════════════════════
+// POST /api/proposals/client-portal/:token/respond — Client accepts or requests changes
+// ══════════════════════════════════════════════════════════════
+router.post('/client-portal/:token/respond', async (req: Request, res: Response) => {
+    try {
+        const { token } = req.params;
+        const { action, message } = req.body as { action: string; message?: string };
+
+        if (!action || !['accepted', 'changes_requested'].includes(action)) {
+            return res.status(400).json({ message: 'action must be "accepted" or "changes_requested"' });
+        }
+
+        const [proposal] = await db.select().from(proposals)
+            .where(eq(proposals.accessToken, token));
+
+        if (!proposal) return res.status(404).json({ message: 'Proposal not found or link expired' });
+
+        // Check expiry
+        if (proposal.expiresAt && new Date(proposal.expiresAt) < new Date()) {
+            return res.status(410).json({ message: 'This proposal link has expired' });
+        }
+
+        // Update proposal with client response
+        await db.update(proposals).set({
+            status: action,
+            clientMessage: message || null,
+            respondedAt: new Date(),
+            updatedAt: new Date(),
+        }).where(eq(proposals.id, proposal.id));
+
+        // Load form for notification email
+        const [form] = await db.select().from(scopingForms)
+            .where(eq(scopingForms.id, proposal.scopingFormId));
+
+        // Notify S2PX team
+        if (form) {
+            await sendClientResponseNotification({
+                projectName: form.projectName || 'Unnamed Project',
+                clientCompany: form.clientCompany || 'Unknown Client',
+                upid: form.upid || '',
+                version: proposal.version || 1,
+                action,
+                clientMessage: message,
+            }).catch(err => console.error('Failed to send response notification:', err));
+        }
+
+        res.json({
+            success: true,
+            status: action,
+        });
+    } catch (err) {
+        console.error('Error recording client response:', err);
+        res.status(500).json({ message: 'Failed to record response' });
     }
 });
 

@@ -666,43 +666,53 @@ export function generateProposalPDF(data: ProposalData): Promise<Buffer> {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        // ── Page 1: Cover ──
+        const sv = data.sectionVisibility || {};
+
+        // ── Page 1: Cover (always) ──
         renderCover(doc, data);
 
-        // ── Page 2: About + Why ──
-        doc.addPage();
-        renderPageHeader(doc, data);
-        renderAboutWhy(doc, data);
+        // ── Page 2: About + Why (toggleable) ──
+        if (sv.aboutScan2plan !== false || sv.whyScan2plan !== false) {
+            doc.addPage();
+            renderPageHeader(doc, data);
+            renderAboutWhy(doc, data);
+        }
 
-        // ── Pages 3-4: The Project ──
+        // ── Pages 3-4: The Project (always) ──
         doc.addPage();
         renderPageHeader(doc, data);
         renderProject(doc, data);
 
-        // ── Pages 5-6: Estimate Table ──
+        // ── Pages 5-6: Estimate Table (always) ──
         doc.addPage();
         renderPageHeader(doc, data);
         renderEstimate(doc, data);
 
-        // ── Page 7: Payment Terms ──
+        // ── Page 7: Payment Terms (always) ──
         doc.addPage();
         renderPageHeader(doc, data);
         renderPaymentTerms(doc, data);
 
-        // ── Page 8: Capabilities ──
-        doc.addPage();
-        renderPageHeader(doc, data);
-        renderCapabilities(doc, data);
+        // ── Page 8: Capabilities (toggleable) ──
+        if (sv.capabilities !== false) {
+            doc.addPage();
+            renderPageHeader(doc, data);
+            renderCapabilities(doc, data);
+        }
 
-        // ── Page 9: Difference ──
-        doc.addPage();
-        renderPageHeader(doc, data);
-        renderDifference(doc, data);
+        // ── Page 9: Difference (toggleable) ──
+        if (sv.difference !== false) {
+            doc.addPage();
+            renderPageHeader(doc, data);
+            renderDifference(doc, data);
+        }
 
-        // ── Pages 10-11: BIM Standards ──
-        doc.addPage();
-        renderPageHeader(doc, data);
-        renderBimStandards(doc, data);
+        // ── Pages 10-11: BIM Standards (toggleable) ──
+        if (sv.bimStandards !== false) {
+            doc.addPage();
+            renderPageHeader(doc, data);
+            renderBimStandards(doc, data);
+        }
 
         // ── Apply footers to all pages ──
         const range = doc.bufferedPageRange();

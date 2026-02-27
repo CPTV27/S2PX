@@ -199,6 +199,8 @@ export const proposals = pgTable('proposals', {
     sentAt: timestamp('sent_at'),
     viewedAt: timestamp('viewed_at'),
     respondedAt: timestamp('responded_at'),
+    clientMessage: text('client_message'), // client's accept note or change request
+    expiresAt: timestamp('expires_at'), // optional magic link expiry
     version: integer('version').default(1),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -539,6 +541,7 @@ export const proposalTemplates = pgTable('proposal_templates', {
     contactEmail: text('contact_email').default('admin@scan2plan.io'),
     contactPhone: text('contact_phone').default('(518) 362-2403'),
     footerText: text('footer_text'),
+    sectionVisibility: jsonb('section_visibility').default('{}'), // { aboutScan2plan: true, whyScan2plan: true, ... }
     isActive: boolean('is_active').default(true),
     createdBy: integer('created_by').references(() => users.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),

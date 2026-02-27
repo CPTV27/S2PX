@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, FileText, Send, Loader2, CheckCircle2, Eye, Clock,
-    AlertCircle, Mail,
+    AlertCircle, Mail, Copy, MessageSquare, Download, ExternalLink,
 } from 'lucide-react';
 import {
     fetchScopingForm,
@@ -38,6 +38,7 @@ export function ProposalBuilder() {
     const [latestProposal, setLatestProposal] = useState<ProposalSummary | null>(null);
     const [templates, setTemplates] = useState<ProposalTemplateData[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<number | undefined>(undefined);
+    const [copiedId, setCopiedId] = useState<number | null>(null);
 
     // Load data
     useEffect(() => {
@@ -240,16 +241,72 @@ export function ProposalBuilder() {
                     {proposals.length > 0 && (
                         <div className="bg-white rounded-lg border border-slate-200 p-4">
                             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">History</h3>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {proposals.map((p) => (
-                                    <div key={p.id} className="flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-1.5">
-                                            <StatusIcon status={p.status} />
-                                            <span className="font-medium text-slate-600">v{p.version}</span>
+                                    <div key={p.id} className="space-y-1.5">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-1.5">
+                                                <StatusIcon status={p.status} />
+                                                <span className="font-medium text-slate-600">v{p.version}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-400">
+                                                    {p.sentTo ? `Sent to ${p.sentTo}` : p.status}
+                                                </span>
+                                                {/* Copy portal link (only for sent/viewed/accepted proposals) */}
+                                                {p.accessToken && p.sentTo && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = `${window.location.origin}/client-portal/${p.accessToken}`;
+                                                            navigator.clipboard.writeText(url);
+                                                            setCopiedId(p.id);
+                                                            setTimeout(() => setCopiedId(null), 2000);
+                                                        }}
+                                                        className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                        title="Copy portal link"
+                                                    >
+                                                        {copiedId === p.id ? (
+                                                            <CheckCircle2 size={12} className="text-emerald-500" />
+                                                        ) : (
+                                                            <Copy size={12} />
+                                                        )}
+                                                    </button>
+                                                )}
+                                                {/* Download PDF */}
+                                                <a
+                                                    href={`/api/proposals/${p.id}/download`}
+                                                    className="text-slate-400 hover:text-blue-600 transition-colors"
+                                                    title="Download PDF"
+                                                >
+                                                    <Download size={12} />
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div className="text-slate-400">
-                                            {p.sentTo ? `Sent to ${p.sentTo}` : p.status}
-                                        </div>
+                                        {/* Client response details */}
+                                        {(p.status === 'accepted' || p.status === 'changes_requested') && (
+                                            <div className={cn(
+                                                'rounded-md px-3 py-2 text-xs',
+                                                p.status === 'accepted'
+                                                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                                    : 'bg-amber-50 border border-amber-200 text-amber-700',
+                                            )}>
+                                                <div className="flex items-center gap-1.5 font-semibold mb-0.5">
+                                                    {p.status === 'accepted' ? (
+                                                        <><CheckCircle2 size={11} /> Accepted by client</>
+                                                    ) : (
+                                                        <><MessageSquare size={11} /> Changes requested</>
+                                                    )}
+                                                    {p.respondedAt && (
+                                                        <span className="font-normal opacity-70 ml-1">
+                                                            {new Date(p.respondedAt).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {p.clientMessage && (
+                                                    <p className="mt-1 opacity-80">{p.clientMessage}</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -266,6 +323,7 @@ function StatusIcon({ status }: { status: string }) {
         case 'sent': return <Mail size={12} className="text-blue-500" />;
         case 'viewed': return <Eye size={12} className="text-purple-500" />;
         case 'accepted': return <CheckCircle2 size={12} className="text-emerald-500" />;
+        case 'changes_requested': return <MessageSquare size={12} className="text-amber-500" />;
         default: return <Clock size={12} className="text-slate-400" />;
     }
 }

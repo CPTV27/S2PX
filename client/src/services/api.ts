@@ -448,6 +448,7 @@ export interface ProposalSummary {
     sentAt?: string | null;
     viewedAt?: string | null;
     respondedAt?: string | null;
+    clientMessage?: string | null;
     createdAt: string;
     accessToken?: string;
     pdfSize?: number;
@@ -469,6 +470,56 @@ export async function sendProposal(proposalId: number, email?: string): Promise<
 
 export async function fetchProposalStatus(quoteId: number): Promise<ProposalSummary[]> {
     return request(`/api/proposals/${quoteId}/status`);
+}
+
+// ── Client Portal (Phase 21b) — public, no auth ──
+
+export interface ClientPortalData {
+    proposal: {
+        id: number;
+        status: string;
+        version: number;
+        customMessage: string | null;
+        pdfUrl: string | null;
+    };
+    project: {
+        name: string;
+        client: string;
+        address: string;
+        upid: string;
+    } | null;
+    totals: {
+        totalClientPrice: number;
+        totalUpteamCost: number;
+        grossMargin: number;
+        grossMarginPercent: number;
+    } | null;
+}
+
+export async function fetchClientPortal(token: string): Promise<ClientPortalData> {
+    const res = await fetch(`/api/proposals/client-portal/${token}`);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Portal error ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function respondToProposal(
+    token: string,
+    action: 'accepted' | 'changes_requested',
+    message?: string,
+): Promise<{ success: boolean; status: string }> {
+    const res = await fetch(`/api/proposals/client-portal/${token}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, message }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Response error ${res.status}`);
+    }
+    return res.json();
 }
 
 // ── QuickBooks Online (Phase 5) ──
@@ -786,6 +837,15 @@ export async function fetchUploadShareFiles(id: number): Promise<UploadShareFile
 
 // ── Proposal Templates (Phase 13) ──
 
+export interface SectionVisibility {
+    aboutScan2plan?: boolean;
+    whyScan2plan?: boolean;
+    capabilities?: boolean;
+    difference?: boolean;
+    bimStandards?: boolean;
+    [key: string]: boolean | undefined;
+}
+
 export interface ProposalTemplateData {
     id: number;
     name: string;
@@ -799,6 +859,7 @@ export interface ProposalTemplateData {
     contactEmail: string;
     contactPhone: string;
     footerText: string | null;
+    sectionVisibility: SectionVisibility | null;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;

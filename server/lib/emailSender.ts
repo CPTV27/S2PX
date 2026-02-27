@@ -98,3 +98,61 @@ export function buildProposalEmailHtml(params: {
 </body>
 </html>`.trim();
 }
+
+// ── Client Response Notification ──
+// Notifies the S2PX team when a client accepts a proposal or requests changes.
+
+interface ClientResponseNotificationParams {
+    projectName: string;
+    clientCompany: string;
+    upid: string;
+    version: number;
+    action: string; // 'accepted' | 'changes_requested'
+    clientMessage?: string | null;
+}
+
+export async function sendClientResponseNotification(params: ClientResponseNotificationParams): Promise<void> {
+    const notifyTo = process.env.SMTP_FROM || process.env.SMTP_USER || 'admin@scan2plan.io';
+    const isAccepted = params.action === 'accepted';
+
+    const statusLabel = isAccepted ? 'Accepted' : 'Changes Requested';
+    const statusColor = isAccepted ? '#22c55e' : '#f59e0b';
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
+    <div style="border-bottom: 3px solid ${statusColor}; padding-bottom: 16px; margin-bottom: 24px;">
+        <h1 style="font-size: 20px; color: #1e293b; margin: 0;">Proposal ${statusLabel}</h1>
+        <p style="font-size: 13px; color: #64748b; margin: 4px 0 0;">${params.clientCompany} has responded to your proposal</p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <table style="width: 100%; font-size: 14px;">
+            <tr><td style="color: #64748b; padding: 4px 0;">Project</td><td style="font-weight: 600;">${params.projectName}</td></tr>
+            <tr><td style="color: #64748b; padding: 4px 0;">Client</td><td style="font-weight: 600;">${params.clientCompany}</td></tr>
+            <tr><td style="color: #64748b; padding: 4px 0;">UPID</td><td style="font-weight: 600;">${params.upid}</td></tr>
+            <tr><td style="color: #64748b; padding: 4px 0;">Version</td><td style="font-weight: 600;">v${params.version}</td></tr>
+            <tr><td style="color: #64748b; padding: 4px 0;">Response</td><td style="font-weight: 700; color: ${statusColor};">${statusLabel}</td></tr>
+        </table>
+    </div>
+
+    ${params.clientMessage ? `
+    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <p style="font-size: 12px; font-weight: 600; color: #92400e; margin: 0 0 8px;">Client Message:</p>
+        <p style="font-size: 14px; color: #1e293b; margin: 0;">${params.clientMessage}</p>
+    </div>` : ''}
+
+    <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 32px; font-size: 11px; color: #94a3b8;">
+        S2PX Proposal System | Automated notification
+    </div>
+</body>
+</html>`.trim();
+
+    await sendProposalEmail({
+        to: notifyTo,
+        subject: `[${params.action === 'accepted' ? 'ACCEPTED' : 'CHANGES'}] ${params.projectName} (${params.upid}) — ${params.clientCompany}`,
+        html,
+    });
+}

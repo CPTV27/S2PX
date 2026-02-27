@@ -12,6 +12,16 @@ export interface EstimateLineItem {
     amount: number;
 }
 
+// ── Section visibility controls ──
+export interface SectionVisibility {
+    aboutScan2plan?: boolean;
+    whyScan2plan?: boolean;
+    capabilities?: boolean;
+    difference?: boolean;
+    bimStandards?: boolean;
+    [key: string]: boolean | undefined;
+}
+
 // ── Template boilerplate data ──
 export interface TemplateData {
     aboutScan2plan: string | null;
@@ -24,6 +34,7 @@ export interface TemplateData {
     contactEmail: string;
     contactPhone: string;
     footerText: string | null;
+    sectionVisibility?: SectionVisibility | null;
 }
 
 // ── Full proposal data for PDF rendering ──
@@ -104,6 +115,9 @@ export interface ProposalData {
 
     // Template boilerplate
     template: TemplateData;
+
+    // Section visibility toggles
+    sectionVisibility: SectionVisibility;
 }
 
 interface MapperInput {
@@ -268,6 +282,15 @@ export function mapToProposalData(input: MapperInput): ProposalData {
         },
 
         template: tpl,
+
+        // Section visibility (default all visible)
+        sectionVisibility: {
+            aboutScan2plan: tpl.sectionVisibility?.aboutScan2plan !== false,
+            whyScan2plan: tpl.sectionVisibility?.whyScan2plan !== false,
+            capabilities: tpl.sectionVisibility?.capabilities !== false,
+            difference: tpl.sectionVisibility?.difference !== false,
+            bimStandards: tpl.sectionVisibility?.bimStandards !== false,
+        },
     };
 }
 

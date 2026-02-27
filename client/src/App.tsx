@@ -26,6 +26,7 @@ const FieldCapture = lazy(() => import('./pages/FieldCapture').then(m => ({ defa
 const Scorecard = lazy(() => import('./pages/Scorecard').then(m => ({ default: m.Scorecard })));
 const ProposalTemplateSettings = lazy(() => import('./pages/ProposalTemplateSettings').then(m => ({ default: m.ProposalTemplateSettings })));
 const UploadPortal = lazy(() => import('./pages/UploadPortal').then(m => ({ default: m.UploadPortal })));
+const ClientPortal = lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })));
 const ScantechList = lazy(() => import('./pages/scantech/ScantechList').then(m => ({ default: m.ScantechList })));
 const ScantechProject = lazy(() => import('./pages/scantech/ScantechProject').then(m => ({ default: m.ScantechProject })));
 const OverviewTab = lazy(() => import('./components/scantech/OverviewTab').then(m => ({ default: m.OverviewTab })));
@@ -44,6 +45,8 @@ export default function App() {
                             <Route path="/login" element={<Login />} />
                             {/* Upload Portal — public, no auth required (token-validated) */}
                             <Route path="/upload/:token" element={<UploadPortal />} />
+                            {/* Client Portal — public proposal review page (token-validated) */}
+                            <Route path="/client-portal/:token" element={<ClientPortal />} />
                             <Route
                                 path="/dashboard"
                                 element={
