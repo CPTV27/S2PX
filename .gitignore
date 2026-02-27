@@ -34,5 +34,9 @@ Financial Records/
 # Claude Code project config
 .claude/
 
+# Playwright
+playwright-report/
+test-results/
+
 # Misc
 *.local

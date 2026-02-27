@@ -17,12 +17,18 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// E2E test bypass: detect synchronously before any effects run
+const e2eMockUser =
+    typeof window !== 'undefined' && import.meta.env.DEV
+        ? (window as any).__E2E_AUTH_USER__
+        : null;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [state, setState] = useState<AuthState>({
-        user: null,
-        isLoading: true,
-        isAuthenticated: false,
-    });
+    const [state, setState] = useState<AuthState>(
+        e2eMockUser
+            ? { user: e2eMockUser, isLoading: false, isAuthenticated: true }
+            : { user: null, isLoading: true, isAuthenticated: false },
+    );
 
     const refreshUser = useCallback(async () => {
         const firebaseUser = auth.currentUser;
@@ -63,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
+        // E2E bypass: don't listen to Firebase when mock user is injected
+        if (e2eMockUser) return;
+
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 await refreshUser();

@@ -18,6 +18,16 @@ export default defineConfig(({ mode }) => {
                 '@shared': path.resolve(__dirname, './shared'),
             },
         },
+        test: {
+            exclude: [
+                'e2e/**',
+                '**/node_modules/**',
+                '**/dist/**',
+                '**/cypress/**',
+                '**/.{idea,git,cache,output,temp}/**',
+                '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
+            ],
+        },
         server: {
             port: 5173,
             proxy: {
