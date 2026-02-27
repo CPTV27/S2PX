@@ -18,6 +18,7 @@ import uploadShareRoutes from './routes/upload-shares.js';
 import proposalTemplateRoutes from './routes/proposal-templates.js';
 import financialsRoutes from './routes/financials.js';
 import chatRoutes from './routes/chat.js';
+import scantechRoutes from './routes/scantech.js';
 
 export async function registerRoutes(app: Express) {
     registerHealthRoutes(app);
@@ -40,4 +41,5 @@ export async function registerRoutes(app: Express) {
     app.use('/api/proposal-templates', proposalTemplateRoutes);
     app.use('/api/financials', financialsRoutes);
     app.use('/api/chat', chatRoutes);
+    app.use('/api/scantech', scantechRoutes);
 }

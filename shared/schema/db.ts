@@ -602,3 +602,105 @@ export const teamMessagesRelations = relations(teamMessages, ({ one }) => ({
         references: [users.id],
     }),
 }));
+
+// ══════════════════════════════════════════════════════════════
+// ── Scantech — Field Operations (Phase 18) ──
+// Mobile field app: checklists, uploads, AI-powered site analysis.
+// ══════════════════════════════════════════════════════════════
+
+// ── Field Uploads ──
+// Photos, videos, and scan files uploaded from the field.
+export const fieldUploads = pgTable('field_uploads', {
+    id: serial('id').primaryKey(),
+    productionProjectId: integer('production_project_id')
+        .notNull()
+        .references(() => productionProjects.id, { onDelete: 'cascade' }),
+    uploadedBy: integer('uploaded_by')
+        .references(() => users.id),
+    filename: text('filename').notNull(),
+    gcsPath: text('gcs_path').notNull(),
+    bucket: text('bucket').notNull(),
+    sizeBytes: text('size_bytes').notNull(), // text for bigint
+    contentType: text('content_type'),
+    fileCategory: text('file_category').notNull(), // photo | video | scan_file | document
+    captureMethod: text('capture_method'), // camera | file_picker | trimble_import
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(), // EXIF, GPS, device info
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── Scan Checklists ──
+// Checklist templates (pre-scan, post-scan, safety) with versioned items.
+export const scanChecklists = pgTable('scan_checklists', {
+    id: serial('id').primaryKey(),
+    slug: text('slug').notNull().unique(), // 'pre-scan', 'post-scan', 'safety'
+    title: text('title').notNull(),
+    description: text('description'),
+    checklistType: text('checklist_type').notNull(), // pre_scan | post_scan | safety | custom
+    items: jsonb('items').notNull().$type<{
+        itemId: string;
+        label: string;
+        category: string;
+        required: boolean;
+        helpText?: string;
+        inputType: 'checkbox' | 'text' | 'number' | 'photo';
+    }[]>(),
+    isActive: boolean('is_active').default(true),
+    version: integer('version').default(1),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── Scan Checklist Responses ──
+// Tech's responses to checklists per production project.
+export const scanChecklistResponses = pgTable('scan_checklist_responses', {
+    id: serial('id').primaryKey(),
+    productionProjectId: integer('production_project_id')
+        .notNull()
+        .references(() => productionProjects.id, { onDelete: 'cascade' }),
+    checklistId: integer('checklist_id')
+        .notNull()
+        .references(() => scanChecklists.id),
+    respondedBy: integer('responded_by')
+        .references(() => users.id),
+    responses: jsonb('responses').notNull().$type<{
+        itemId: string;
+        checked: boolean;
+        value?: string | number;
+        photoUrl?: string;
+        note?: string;
+        completedAt?: string;
+    }[]>(),
+    status: text('status').notNull().default('in_progress'), // in_progress | complete | flagged
+    completedAt: timestamp('completed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── Scantech Relations ──
+
+export const fieldUploadsRelations = relations(fieldUploads, ({ one }) => ({
+    productionProject: one(productionProjects, {
+        fields: [fieldUploads.productionProjectId],
+        references: [productionProjects.id],
+    }),
+    uploadedByUser: one(users, {
+        fields: [fieldUploads.uploadedBy],
+        references: [users.id],
+    }),
+}));
+
+export const scanChecklistResponsesRelations = relations(scanChecklistResponses, ({ one }) => ({
+    productionProject: one(productionProjects, {
+        fields: [scanChecklistResponses.productionProjectId],
+        references: [productionProjects.id],
+    }),
+    checklist: one(scanChecklists, {
+        fields: [scanChecklistResponses.checklistId],
+        references: [scanChecklists.id],
+    }),
+    respondedByUser: one(users, {
+        fields: [scanChecklistResponses.respondedBy],
+        references: [users.id],
+    }),
+}));

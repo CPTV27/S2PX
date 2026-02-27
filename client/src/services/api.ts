@@ -1092,3 +1092,125 @@ export async function deleteTeamMessage(id: number): Promise<{ success: boolean 
 export async function seedChatChannels(): Promise<ChatChannel[]> {
     return request('/api/chat/seed', { method: 'POST' });
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Scantech — Mobile Field Operations (Phase 18)
+// ═══════════════════════════════════════════════════════════════
+
+import type {
+    ScantechProject,
+    ScantechProjectDetail,
+    ChecklistTemplate,
+    ChecklistSubmission,
+    ChecklistResponse,
+    FieldUploadRecord,
+    FieldNote,
+    FileCategory,
+    CaptureMethod,
+    ScantechAIRequest,
+    ScantechAIResponse,
+} from '@shared/types/scantech';
+
+// Re-export for convenience
+export type {
+    ScantechProject,
+    ScantechProjectDetail,
+    ChecklistTemplate,
+    ChecklistSubmission,
+    ChecklistResponse,
+    FieldUploadRecord,
+    FieldNote,
+    FileCategory,
+    CaptureMethod,
+    ScantechAIRequest,
+    ScantechAIResponse,
+};
+
+/** List projects in scheduling/field_capture stage */
+export async function fetchScantechProjects(): Promise<ScantechProject[]> {
+    return request('/api/scantech/projects');
+}
+
+/** Full project detail: scoping, checklists, uploads, notes */
+export async function fetchScantechProject(id: number): Promise<ScantechProjectDetail> {
+    return request(`/api/scantech/projects/${id}`);
+}
+
+/** Active checklist templates */
+export async function fetchScantechChecklists(): Promise<ChecklistTemplate[]> {
+    return request('/api/scantech/checklists');
+}
+
+/** Submit or autosave checklist responses */
+export async function submitChecklistResponse(
+    projectId: number,
+    data: {
+        checklistId: number;
+        responses: ChecklistResponse[];
+        status: 'in_progress' | 'complete' | 'flagged';
+    },
+): Promise<ChecklistSubmission> {
+    return request(`/api/scantech/projects/${projectId}/checklist`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Generate GCS signed URL for direct-to-bucket upload */
+export async function getFieldUploadSignedUrl(
+    projectId: number,
+    data: {
+        filename: string;
+        contentType: string;
+        sizeBytes: number;
+        fileCategory: FileCategory;
+        captureMethod: CaptureMethod;
+    },
+): Promise<{ signedUrl: string; gcsPath: string; bucket: string }> {
+    return request(`/api/scantech/projects/${projectId}/upload/signed-url`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Confirm upload completion and record in field_uploads table */
+export async function confirmFieldUpload(
+    projectId: number,
+    data: {
+        filename: string;
+        gcsPath: string;
+        bucket: string;
+        sizeBytes: number;
+        contentType: string;
+        fileCategory: FileCategory;
+        captureMethod: CaptureMethod;
+        metadata?: Record<string, unknown>;
+        notes?: string;
+    },
+): Promise<FieldUploadRecord> {
+    return request(`/api/scantech/projects/${projectId}/upload/confirm`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Save field notes to stageData.scantech.notes */
+export async function saveFieldNotes(
+    projectId: number,
+    notes: FieldNote[],
+): Promise<{ success: boolean }> {
+    return request(`/api/scantech/projects/${projectId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+    });
+}
+
+/** Gemini AI assistant — chat, photo analysis, audio-to-scoping, checklist validation */
+export async function scantechAIAssist(
+    data: ScantechAIRequest,
+): Promise<ScantechAIResponse> {
+    return request('/api/scantech/ai/assist', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}

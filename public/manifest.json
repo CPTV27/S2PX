@@ -1,0 +1,20 @@
+{
+    "name": "Scantech — Scan2Plan OS X",
+    "short_name": "Scantech",
+    "description": "Mobile field operations app for 3D scan technicians",
+    "start_url": "/scantech",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f9fafb",
+    "theme_color": "#2563eb",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["business", "productivity"],
+    "scope": "/"
+}

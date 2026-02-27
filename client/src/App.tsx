@@ -26,6 +26,13 @@ const FieldCapture = lazy(() => import('./pages/FieldCapture').then(m => ({ defa
 const Scorecard = lazy(() => import('./pages/Scorecard').then(m => ({ default: m.Scorecard })));
 const ProposalTemplateSettings = lazy(() => import('./pages/ProposalTemplateSettings').then(m => ({ default: m.ProposalTemplateSettings })));
 const UploadPortal = lazy(() => import('./pages/UploadPortal').then(m => ({ default: m.UploadPortal })));
+const ScantechList = lazy(() => import('./pages/scantech/ScantechList').then(m => ({ default: m.ScantechList })));
+const ScantechProject = lazy(() => import('./pages/scantech/ScantechProject').then(m => ({ default: m.ScantechProject })));
+const OverviewTab = lazy(() => import('./components/scantech/OverviewTab').then(m => ({ default: m.OverviewTab })));
+const ChecklistTab = lazy(() => import('./components/scantech/ChecklistTab').then(m => ({ default: m.ChecklistTab })));
+const UploadTab = lazy(() => import('./components/scantech/UploadTab').then(m => ({ default: m.UploadTab })));
+const ScopingTab = lazy(() => import('./components/scantech/ScopingTab').then(m => ({ default: m.ScopingTab })));
+const NotesTab = lazy(() => import('./components/scantech/NotesTab').then(m => ({ default: m.NotesTab })));
 
 export default function App() {
     return (
@@ -63,6 +70,30 @@ export default function App() {
                                 <Route path="proposals/:id" element={<ProposalBuilder />} />
                                 <Route path="production" element={<ProductionPipeline />} />
                                 <Route path="production/:id" element={<ProductionDetail />} />
+                            </Route>
+                            {/* Scantech — mobile field operations hub (no sidebar) */}
+                            <Route
+                                path="/scantech"
+                                element={
+                                    <RequireAuth>
+                                        <ScantechList />
+                                    </RequireAuth>
+                                }
+                            />
+                            <Route
+                                path="/scantech/:projectId"
+                                element={
+                                    <RequireAuth>
+                                        <ScantechProject />
+                                    </RequireAuth>
+                                }
+                            >
+                                <Route index element={<Navigate to="overview" replace />} />
+                                <Route path="overview" element={<OverviewTab />} />
+                                <Route path="checklist" element={<ChecklistTab />} />
+                                <Route path="upload" element={<UploadTab />} />
+                                <Route path="scoping" element={<ScopingTab />} />
+                                <Route path="notes" element={<NotesTab />} />
                             </Route>
                             {/* Field App — full-width, no sidebar (mobile-first for scan techs) */}
                             <Route
