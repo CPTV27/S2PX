@@ -988,3 +988,91 @@ export async function fetchEstimateConversion(): Promise<EstimateConversionData>
 export async function fetchBalanceSheet(): Promise<BalanceSheetData> {
     return request('/api/financials/balance-sheet');
 }
+
+// ── Team Chat (Phase 16) ──
+
+export interface ChatChannel {
+    id: number;
+    name: string;
+    displayName: string;
+    description: string | null;
+    emoji: string;
+    isDefault: boolean;
+    googleChatWebhookUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+    recentCount?: number;
+}
+
+export interface TeamMessage {
+    id: number;
+    channelId: number;
+    userId: number;
+    content: string;
+    messageType: string;
+    parentId: number | null;
+    editedAt: string | null;
+    createdAt: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    profileImageUrl: string | null;
+}
+
+export async function fetchChatChannels(): Promise<ChatChannel[]> {
+    return request('/api/chat/channels');
+}
+
+export async function createChatChannel(data: {
+    name: string;
+    displayName: string;
+    description?: string;
+    emoji?: string;
+}): Promise<ChatChannel> {
+    return request('/api/chat/channels', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateChatChannel(id: number, data: Partial<ChatChannel>): Promise<ChatChannel> {
+    return request(`/api/chat/channels/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function fetchChannelMessages(channelId: number, before?: number): Promise<TeamMessage[]> {
+    const qs = before ? `?before=${before}` : '';
+    return request(`/api/chat/channels/${channelId}/messages${qs}`);
+}
+
+export async function pollChannelMessages(channelId: number, afterId: number): Promise<TeamMessage[]> {
+    return request(`/api/chat/channels/${channelId}/messages/poll?after=${afterId}`);
+}
+
+export async function sendTeamMessage(channelId: number, data: {
+    content: string;
+    userId: number;
+    parentId?: number;
+}): Promise<TeamMessage> {
+    return request(`/api/chat/channels/${channelId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function editTeamMessage(id: number, content: string): Promise<TeamMessage> {
+    return request(`/api/chat/messages/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+    });
+}
+
+export async function deleteTeamMessage(id: number): Promise<{ success: boolean }> {
+    return request(`/api/chat/messages/${id}`, { method: 'DELETE' });
+}
+
+export async function seedChatChannels(): Promise<ChatChannel[]> {
+    return request('/api/chat/seed', { method: 'POST' });
+}

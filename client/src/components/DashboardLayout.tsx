@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatWidget } from './ChatWidget';
+import { TeamChat } from './TeamChat';
 import { TourOverlay } from './TourOverlay';
 import { TourTrigger } from './TourTrigger';
 import { useAuth } from '@/hooks/useAuth';
@@ -193,6 +194,7 @@ export function DashboardLayout() {
             </main>
 
             <ChatWidget />
+            <TeamChat />
             <CommandPalette isOpen={searchOpen} onClose={closeSearch} />
             <TourOverlay />
         </div>

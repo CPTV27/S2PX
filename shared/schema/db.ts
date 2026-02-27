@@ -542,3 +542,61 @@ export const proposalTemplates = pgTable('proposal_templates', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ══════════════════════════════════════════════════════════════
+// ── Team Chat (Phase 16) ──
+// Internal team messaging with channels and Google Chat webhook.
+// ══════════════════════════════════════════════════════════════
+
+// ── Chat Channels ──
+// Named channels for organizing team conversations (e.g. #general, #field-ops).
+export const chatChannels = pgTable('chat_channels', {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull().unique(), // lowercase, no spaces — e.g. "general"
+    displayName: text('display_name').notNull(), // "General", "Field Ops"
+    description: text('description'),
+    emoji: text('emoji').default('💬'),
+    isDefault: boolean('is_default').default(false), // auto-join channel
+    googleChatWebhookUrl: text('google_chat_webhook_url'), // optional: forward to Google Chat space
+    createdBy: integer('created_by').references(() => users.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── Team Messages ──
+// Individual messages within a channel.
+export const teamMessages = pgTable('team_messages', {
+    id: serial('id').primaryKey(),
+    channelId: integer('channel_id')
+        .notNull()
+        .references(() => chatChannels.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+        .notNull()
+        .references(() => users.id),
+    content: text('content').notNull(),
+    messageType: text('message_type').notNull().default('text'), // text | system | webhook
+    parentId: integer('parent_id'), // thread reply (self-ref, no FK constraint for simplicity)
+    editedAt: timestamp('edited_at'),
+    deletedAt: timestamp('deleted_at'), // soft delete
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── Chat Channel Relations ──
+export const chatChannelsRelations = relations(chatChannels, ({ one, many }) => ({
+    createdByUser: one(users, {
+        fields: [chatChannels.createdBy],
+        references: [users.id],
+    }),
+    messages: many(teamMessages),
+}));
+
+export const teamMessagesRelations = relations(teamMessages, ({ one }) => ({
+    channel: one(chatChannels, {
+        fields: [teamMessages.channelId],
+        references: [chatChannels.id],
+    }),
+    user: one(users, {
+        fields: [teamMessages.userId],
+        references: [users.id],
+    }),
+}));
