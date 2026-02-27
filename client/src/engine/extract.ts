@@ -5,7 +5,16 @@
 import { GoogleGenAI } from "@google/genai";
 import type { ExtractionResult, Area } from './types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// Lazy singleton — avoids crashing at module scope when API key is absent (e.g. CI/E2E).
+let _ai: GoogleGenAI | null = null;
+function getAI(): GoogleGenAI {
+    if (!_ai) {
+        const key = process.env.GEMINI_API_KEY || '';
+        if (!key) throw new Error('Gemini API key not configured. Set GEMINI_API_KEY in .env.');
+        _ai = new GoogleGenAI({ apiKey: key });
+    }
+    return _ai;
+}
 const EXTRACTION_MODEL = "gemini-3.1-pro-preview";
 
 const EXTRACTION_SYSTEM_PROMPT = `You are a pricing parameter extractor for Scan2Plan, a 3D scanning and BIM documentation company.
@@ -100,7 +109,7 @@ export async function extractQuoteParameters(
     }
   }
 
-  const chat = ai.chats.create({
+  const chat = getAI().chats.create({
     model: EXTRACTION_MODEL,
     config: {
       systemInstruction: EXTRACTION_SYSTEM_PROMPT,

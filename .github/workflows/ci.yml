@@ -33,6 +33,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ── Create .env with CI placeholders ──
+      # The app needs a .env file so Vite's loadEnv() populates the define
+      # block and import.meta.env.VITE_* values. E2E tests bypass Firebase
+      # auth via window.__E2E_AUTH_USER__ — no real Firebase calls are made.
+      - name: Create CI environment file
+        run: |
+          echo "VITE_FIREBASE_API_KEY=ci-placeholder-key" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=ci-placeholder.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=ci-placeholder" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=ci-placeholder.appspot.com" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000" >> .env
+          echo "VITE_FIREBASE_APP_ID=1:000000000000:web:0000000000000000" >> .env
+          echo "GEMINI_API_KEY=" >> .env
+          echo "VITE_GOOGLE_MAPS_API_KEY=" >> .env
+
       # ── Fail-fast gates (cheapest checks first) ──
 
       - name: Type Check
@@ -51,16 +66,6 @@ jobs:
 
       - name: Run E2E Tests (Playwright)
         run: npx playwright test
-        env:
-          # Dummy Firebase config so the SDK initializes without crashing.
-          # E2E tests bypass Firebase auth via window.__E2E_AUTH_USER__ injection —
-          # no real Firebase calls are made.
-          VITE_FIREBASE_API_KEY: ci-placeholder-key
-          VITE_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
-          VITE_FIREBASE_PROJECT_ID: ci-placeholder
-          VITE_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
-          VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
-          VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000'
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4

@@ -3,7 +3,16 @@
 
 import { GoogleGenAI, FunctionDeclaration, Type, ThinkingLevel, Modality } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// Lazy singleton — avoids crashing at module scope when API key is absent (e.g. CI/E2E).
+let _ai: GoogleGenAI | null = null;
+function getAI(): GoogleGenAI {
+    if (!_ai) {
+        const key = process.env.GEMINI_API_KEY || '';
+        if (!key) throw new Error('Gemini API key not configured. Set GEMINI_API_KEY in .env.');
+        _ai = new GoogleGenAI({ apiKey: key });
+    }
+    return _ai;
+}
 
 const S2P_SYSTEM_INSTRUCTION = `
 You are the S2P Operator, the AI assistant for Scan2Plan.
@@ -79,7 +88,7 @@ export async function sendMessageToGemini(
             config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH, thinkingBudget: 32768 };
         }
 
-        const chat = ai.chats.create({
+        const chat = getAI().chats.create({
             model: modelName,
             config,
             history: history.map(h => ({
@@ -224,7 +233,7 @@ When calculating, ALWAYS use the cost basis and rules above. Do NOT make up pric
             config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH, thinkingBudget: 32768 };
         }
 
-        const chat = ai.chats.create({
+        const chat = getAI().chats.create({
             model: modelName,
             config,
             history: history.map(h => ({
@@ -263,7 +272,7 @@ export async function generateImage(prompt: string, aspectRatio: string = '16:9'
     try {
         const enhancedPrompt = `${prompt}. Style: Professional, technical, clean. Colors: blue and white. Industry: construction, architecture, engineering.`;
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts: [{ text: enhancedPrompt }] },
             config: {
@@ -287,7 +296,7 @@ export async function generateImage(prompt: string, aspectRatio: string = '16:9'
 // ── Text-to-Speech ──
 export async function generateSpeech(text: string) {
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text }] }],
             config: {
