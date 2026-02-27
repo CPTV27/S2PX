@@ -397,6 +397,131 @@ export const uploadShareFilesRelations = relations(uploadShareFiles, ({ one }) =
     }),
 }));
 
+// ══════════════════════════════════════════════════════════════
+// ── QBO Financial Data (Phase 15) ──
+// Actual financial data ingested from QuickBooks CSV exports.
+// ══════════════════════════════════════════════════════════════
+
+// ── QBO Customers ──
+// Normalized customer master from QBO Customer Contact List.
+export const qboCustomers = pgTable('qbo_customers', {
+    id: serial('id').primaryKey(),
+    customerName: text('customer_name').notNull().unique(),
+    company: text('company'),
+    email: text('email'),
+    phone: text('phone'),
+    billAddress: text('bill_address'),
+    shipAddress: text('ship_address'),
+    firstName: text('first_name'),
+    lastName: text('last_name'),
+    website: text('website'),
+    terms: text('terms'),
+    note: text('note'),
+    qboCreatedOn: timestamp('qbo_created_on'),
+    createdBy: text('created_by'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ── QBO Sales Transactions ──
+// Actual invoices and sales receipts from QBO — the real revenue data.
+export const qboSalesTransactions = pgTable('qbo_sales_transactions', {
+    id: serial('id').primaryKey(),
+    customerId: integer('customer_id').references(() => qboCustomers.id),
+    customerName: text('customer_name').notNull(),
+    transactionDate: timestamp('transaction_date').notNull(),
+    transactionType: text('transaction_type').notNull(), // Invoice | Sales Receipt
+    num: text('num'),
+    description: text('description'),
+    quantity: numeric('quantity', { precision: 12, scale: 2 }),
+    salesPrice: numeric('sales_price', { precision: 12, scale: 2 }),
+    amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+    balance: numeric('balance', { precision: 12, scale: 2 }),
+    accountName: text('account_name'),
+    productService: text('product_service'),
+    subject: text('subject'),
+    message: text('message'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── QBO Estimates ──
+// Historical estimate data from QBO exports.
+export const qboEstimates = pgTable('qbo_estimates', {
+    id: serial('id').primaryKey(),
+    customerId: integer('customer_id').references(() => qboCustomers.id),
+    customerName: text('customer_name').notNull(),
+    estimateDate: timestamp('estimate_date').notNull(),
+    num: text('num'),
+    status: text('status'), // Pending | Accepted | Rejected | Closed
+    acceptedOn: timestamp('accepted_on'),
+    acceptedBy: text('accepted_by'),
+    invoiceNumber: text('invoice_number'),
+    amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+    billTo: text('bill_to'),
+    message: text('message'),
+    subject: text('subject'),
+    description: text('description'),
+    qboCreatedOn: timestamp('qbo_created_on'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── QBO P&L Monthly ──
+// Profit & Loss by month — pivoted from wide QBO export to tall format.
+export const qboPnlMonthly = pgTable('qbo_pnl_monthly', {
+    id: serial('id').primaryKey(),
+    account: text('account').notNull(),
+    accountCategory: text('account_category'), // Income | COGS | Expenses | Other Income | Other Expenses
+    month: text('month').notNull(), // YYYY-MM
+    amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+    uniqueIndex('qbo_pnl_account_month_idx').on(table.account, table.month),
+]);
+
+// ── QBO Expenses by Vendor ──
+// Vendor expense summaries (all-time and trailing 12mo).
+export const qboExpensesByVendor = pgTable('qbo_expenses_by_vendor', {
+    id: serial('id').primaryKey(),
+    vendor: text('vendor').notNull(),
+    total: numeric('total', { precision: 14, scale: 2 }).notNull(),
+    period: text('period').notNull(), // all_time | trailing_12mo
+    periodStart: timestamp('period_start'),
+    periodEnd: timestamp('period_end'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── QBO Balance Sheet ──
+// Point-in-time balance sheet snapshot from QBO.
+export const qboBalanceSheet = pgTable('qbo_balance_sheet', {
+    id: serial('id').primaryKey(),
+    account: text('account').notNull(),
+    accountCategory: text('account_category'), // Assets | Liabilities | Equity
+    accountSubcategory: text('account_subcategory'), // Current Assets | Bank Accounts | etc.
+    total: numeric('total', { precision: 14, scale: 2 }).notNull(),
+    snapshotDate: timestamp('snapshot_date').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── QBO Financial Relations ──
+export const qboCustomersRelations = relations(qboCustomers, ({ many }) => ({
+    salesTransactions: many(qboSalesTransactions),
+    estimates: many(qboEstimates),
+}));
+
+export const qboSalesTransactionsRelations = relations(qboSalesTransactions, ({ one }) => ({
+    customer: one(qboCustomers, {
+        fields: [qboSalesTransactions.customerId],
+        references: [qboCustomers.id],
+    }),
+}));
+
+export const qboEstimatesRelations = relations(qboEstimates, ({ one }) => ({
+    customer: one(qboCustomers, {
+        fields: [qboEstimates.customerId],
+        references: [qboCustomers.id],
+    }),
+}));
+
 // ── Proposal Templates ──
 // Editable boilerplate content for proposal PDF sections.
 export const proposalTemplates = pgTable('proposal_templates', {

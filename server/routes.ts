@@ -16,6 +16,7 @@ import kbRoutes from './routes/kb.js';
 import geoRoutes from './routes/geo.js';
 import uploadShareRoutes from './routes/upload-shares.js';
 import proposalTemplateRoutes from './routes/proposal-templates.js';
+import financialsRoutes from './routes/financials.js';
 
 export async function registerRoutes(app: Express) {
     registerHealthRoutes(app);
@@ -36,4 +37,5 @@ export async function registerRoutes(app: Express) {
     app.use('/api/geo', geoRoutes);
     app.use('/api/upload-shares', uploadShareRoutes);
     app.use('/api/proposal-templates', proposalTemplateRoutes);
+    app.use('/api/financials', financialsRoutes);
 }

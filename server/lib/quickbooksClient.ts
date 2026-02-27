@@ -260,8 +260,9 @@ class QuickBooksClient {
     // ── Customer ──
 
     async findOrCreateCustomer(clientName: string, email?: string): Promise<{ id: string; name: string }> {
-        // Search for existing customer
-        const searchQuery = `SELECT * FROM Customer WHERE DisplayName = '${clientName.replace(/'/g, "\\'")}'`;
+        // Search for existing customer — escape single quotes per QBO query spec (double them)
+        const escapedName = clientName.replace(/'/g, "''");
+        const searchQuery = `SELECT * FROM Customer WHERE DisplayName = '${escapedName}'`;
         const result = await this.query(searchQuery);
         const existing = result.QueryResponse?.Customer;
 
@@ -342,12 +343,17 @@ class QuickBooksClient {
         // Fetch the estimate first
         const estimate = await this.getEstimate(estimateId);
 
+        // Filter out SubTotalLineDetail — QBO auto-adds subtotal lines that shouldn't be duplicated
+        const filteredLines = (estimate.Line || []).filter(
+            (line: any) => line.DetailType !== 'SubTotalLineDetail'
+        );
+
         const invoiceData = {
             CustomerRef: estimate.CustomerRef,
             TxnDate: new Date().toISOString().split('T')[0],
             CustomerMemo: estimate.CustomerMemo,
             BillEmail: estimate.BillEmail,
-            Line: estimate.Line,
+            Line: filteredLines,
             // Link back to estimate
             LinkedTxn: [{
                 TxnId: estimateId,

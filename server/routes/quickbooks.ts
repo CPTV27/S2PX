@@ -289,4 +289,26 @@ router.post('/email-estimate/:quoteId', async (req, res) => {
     }
 });
 
+// POST /api/qbo/email-invoice/:quoteId — email an invoice to the client
+router.post('/email-invoice/:quoteId', async (req, res) => {
+    try {
+        const quoteId = parseInt(req.params.quoteId);
+        const { email } = req.body;
+
+        const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId));
+        if (!quote) return res.status(404).json({ message: 'Quote not found' });
+        if (!quote.qboInvoiceId) return res.status(400).json({ message: 'No invoice to email' });
+
+        const [form] = await db.select().from(scopingForms).where(eq(scopingForms.id, quote.scopingFormId));
+        const sendTo = email || form?.contactEmail;
+        if (!sendTo) return res.status(400).json({ message: 'No email address provided' });
+
+        await quickbooksClient.emailInvoice(quote.qboInvoiceId, sendTo);
+
+        res.json({ message: `Invoice emailed to ${sendTo}` });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 export default router;

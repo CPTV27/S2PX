@@ -103,15 +103,44 @@ router.get('/overview', async (req: Request, res: Response) => {
             ORDER BY month_num
         `);
 
+        // Actual revenue from QBO sales transactions
+        const actualRev = await db.execute(sql`
+            SELECT
+                COALESCE(SUM(amount), 0)::numeric as total_actual_revenue,
+                COALESCE(SUM(amount) FILTER (WHERE EXTRACT(YEAR FROM transaction_date) = EXTRACT(YEAR FROM NOW())), 0)::numeric as ytd_actual_revenue
+            FROM qbo_sales_transactions
+            WHERE account_name = '4000 Sales'
+        `);
+
+        // Actual monthly revenue (last 12 months)
+        const actualMonthly = await db.execute(sql`
+            SELECT
+                TO_CHAR(transaction_date, 'Mon') as month,
+                EXTRACT(MONTH FROM transaction_date)::int as month_num,
+                SUM(amount)::numeric as actual_revenue
+            FROM qbo_sales_transactions
+            WHERE account_name = '4000 Sales'
+                AND transaction_date >= ${cutoff}
+            GROUP BY TO_CHAR(transaction_date, 'Mon'), EXTRACT(MONTH FROM transaction_date)
+            ORDER BY month_num
+        `);
+
         const p = pipeline.rows[0] as any;
         const pr = production.rows[0] as any;
         const q = quality.rows[0] as any;
+        const ar = actualRev.rows[0] as any;
 
         const wonCount = Number(p.won_count) || 0;
         const lostCount = Number(p.lost_count) || 0;
         const closedTotal = wonCount + lostCount;
         const totalRevenue = Number(p.total_revenue) || 0;
         const totalCost = Number(p.total_cost) || 0;
+
+        // Build merged monthly revenue with actual overlaid
+        const actualByMonth = new Map<string, number>();
+        for (const r of actualMonthly.rows as any[]) {
+            actualByMonth.set(r.month?.trim(), Math.round(Number(r.actual_revenue) || 0));
+        }
 
         res.json({
             totalDeals: Number(p.total_deals) || 0,
@@ -132,10 +161,13 @@ router.get('/overview', async (req: Request, res: Response) => {
                 ? Math.round((Number(q.rms_pass) / Number(q.rms_total)) * 100) : 0,
             qcPassRate: Number(q.qc_total) > 0
                 ? Math.round((Number(q.qc_pass) / Number(q.qc_total)) * 100) : 0,
+            actualRevenue: Math.round(Number(ar.total_actual_revenue) || 0),
+            ytdActualRevenue: Math.round(Number(ar.ytd_actual_revenue) || 0),
             monthlyRevenue: (monthly.rows as any[]).map(r => ({
                 month: r.month?.trim(),
                 revenue: Math.round(Number(r.revenue) || 0),
                 cost: Math.round(Number(r.cost) || 0),
+                actualRevenue: actualByMonth.get(r.month?.trim()) || 0,
             })),
             monthlyWinRate: (monthlyWR.rows as any[]).map(r => {
                 const w = Number(r.won) || 0;

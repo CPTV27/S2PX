@@ -953,3 +953,38 @@ export async function geoBatch(scopingFormIds: number[]): Promise<{
         body: JSON.stringify({ scopingFormIds }),
     });
 }
+
+// ── Financials (Phase 15 — QBO actual data) ──
+
+import type {
+    ActualRevenueData,
+    PnlSummary,
+    ExpenseSummaryData,
+    QBOCustomerListData,
+    EstimateConversionData,
+    BalanceSheetData,
+} from '@shared/types/financials';
+
+export async function fetchActualRevenue(): Promise<ActualRevenueData> {
+    return request('/api/financials/revenue-actual');
+}
+
+export async function fetchPnlSummary(): Promise<PnlSummary> {
+    return request('/api/financials/pnl-summary');
+}
+
+export async function fetchExpensesSummary(): Promise<ExpenseSummaryData> {
+    return request('/api/financials/expenses-summary');
+}
+
+export async function fetchQBOCustomers(): Promise<QBOCustomerListData> {
+    return request('/api/financials/customers');
+}
+
+export async function fetchEstimateConversion(): Promise<EstimateConversionData> {
+    return request('/api/financials/estimate-conversion');
+}
+
+export async function fetchBalanceSheet(): Promise<BalanceSheetData> {
+    return request('/api/financials/balance-sheet');
+}

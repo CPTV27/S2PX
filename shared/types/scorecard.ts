@@ -26,7 +26,9 @@ export interface ScorecardOverview {
     avgCycleDays: number;
     rmsPassRate: number;
     qcPassRate: number;
-    monthlyRevenue: { month: string; revenue: number; cost: number }[];
+    actualRevenue: number;
+    ytdActualRevenue: number;
+    monthlyRevenue: { month: string; revenue: number; cost: number; actualRevenue: number }[];
     monthlyWinRate: { month: string; won: number; lost: number; rate: number }[];
 }
 

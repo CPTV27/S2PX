@@ -173,8 +173,12 @@ function OverviewTab({ data }: { data: ScorecardOverview | null }) {
     const kpis = [
         { label: 'Win Rate', value: `${data.winRate}%`, icon: Target,
             chip: 'Closed', color: kpiColor(data.winRate, 40, 25) },
-        { label: 'Total Revenue', value: formatCurrency(data.totalRevenue), icon: DollarSign,
-            chip: 'YTD', color: 'text-blue-500 bg-blue-50' },
+        { label: 'Estimated Revenue', value: formatCurrency(data.totalRevenue), icon: DollarSign,
+            chip: 'Quotes', color: 'text-slate-500 bg-slate-100' },
+        { label: 'Actual Revenue (QBO)', value: formatCurrency(data.actualRevenue), icon: Activity,
+            chip: 'All-Time', color: 'text-emerald-500 bg-emerald-50' },
+        { label: 'YTD Actual Revenue', value: formatCurrency(data.ytdActualRevenue), icon: ArrowUpRight,
+            chip: new Date().getFullYear().toString(), color: 'text-blue-500 bg-blue-50' },
         { label: 'Blended Margin', value: `${data.blendedMarginPct}%`, icon: TrendingUp,
             chip: 'Margin', color: kpiColor(data.blendedMarginPct, 45, 40) },
         { label: 'Avg Deal Size', value: formatCurrency(data.avgDealSize), icon: Zap,
@@ -191,21 +195,22 @@ function OverviewTab({ data }: { data: ScorecardOverview | null }) {
 
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 {kpis.map((k, i) => (
                     <KpiCard key={k.label} {...k} delay={i * 0.08} />
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <ChartCard title="Monthly Revenue vs Cost" delay={0.3} className="h-[400px]">
+                <ChartCard title="Monthly Revenue: Actual vs Estimated" delay={0.3} className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.monthlyRevenue}>
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v) => formatCurrency(v as number)} />
                             <XAxis dataKey="month" {...AXIS_STYLE} />
                             <YAxis {...AXIS_STYLE} tickFormatter={v => `$${v / 1000}k`} />
-                            <Bar dataKey="revenue" name="Revenue" fill="#3B82F6" radius={[6, 6, 0, 0]} />
-                            <Bar dataKey="cost" name="Cost" fill="#94A3B8" radius={[6, 6, 0, 0]} />
+                            <Bar dataKey="actualRevenue" name="Actual (QBO)" fill="#10B981" radius={[6, 6, 0, 0]} />
+                            <Bar dataKey="revenue" name="Estimated" fill="#3B82F6" radius={[6, 6, 0, 0]} opacity={0.5} />
+                            <Bar dataKey="cost" name="Cost" fill="#94A3B8" radius={[6, 6, 0, 0]} opacity={0.4} />
                             <Legend />
                         </BarChart>
                     </ResponsiveContainer>
