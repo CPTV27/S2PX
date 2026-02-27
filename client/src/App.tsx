@@ -1,75 +1,81 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { TourProvider } from './hooks/useTour';
 import { RequireAuth } from './components/RequireAuth';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardLayout } from './components/DashboardLayout';
-import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { Pipeline } from './pages/Pipeline';
-import { Projects } from './pages/Projects';
-import { Revenue } from './pages/Revenue';
-import { KnowledgeBase } from './pages/KnowledgeBase';
-import { Settings } from './pages/Settings';
-import { StorageBrowser } from './pages/StorageBrowser';
-import { ScopingList } from './pages/ScopingList';
-import { ScopingForm } from './pages/ScopingForm';
-import { DealWorkspace } from './pages/DealWorkspace';
-import { ProposalBuilder } from './pages/ProposalBuilder';
-import { ProductionPipeline } from './pages/ProductionPipeline';
-import { ProductionDetail } from './pages/ProductionDetail';
-import { FieldCapture } from './pages/FieldCapture';
-import { Scorecard } from './pages/Scorecard';
-import { ProposalTemplateSettings } from './pages/ProposalTemplateSettings';
-import { UploadPortal } from './pages/UploadPortal';
+import { PageLoader } from './components/PageLoader';
+
+// ── Route-level code splitting ──
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Pipeline = lazy(() => import('./pages/Pipeline').then(m => ({ default: m.Pipeline })));
+const Projects = lazy(() => import('./pages/Projects').then(m => ({ default: m.Projects })));
+const Revenue = lazy(() => import('./pages/Revenue').then(m => ({ default: m.Revenue })));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase').then(m => ({ default: m.KnowledgeBase })));
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const StorageBrowser = lazy(() => import('./pages/StorageBrowser').then(m => ({ default: m.StorageBrowser })));
+const ScopingList = lazy(() => import('./pages/ScopingList').then(m => ({ default: m.ScopingList })));
+const ScopingForm = lazy(() => import('./pages/ScopingForm').then(m => ({ default: m.ScopingForm })));
+const DealWorkspace = lazy(() => import('./pages/DealWorkspace').then(m => ({ default: m.DealWorkspace })));
+const ProposalBuilder = lazy(() => import('./pages/ProposalBuilder').then(m => ({ default: m.ProposalBuilder })));
+const ProductionPipeline = lazy(() => import('./pages/ProductionPipeline').then(m => ({ default: m.ProductionPipeline })));
+const ProductionDetail = lazy(() => import('./pages/ProductionDetail').then(m => ({ default: m.ProductionDetail })));
+const FieldCapture = lazy(() => import('./pages/FieldCapture').then(m => ({ default: m.FieldCapture })));
+const Scorecard = lazy(() => import('./pages/Scorecard').then(m => ({ default: m.Scorecard })));
+const ProposalTemplateSettings = lazy(() => import('./pages/ProposalTemplateSettings').then(m => ({ default: m.ProposalTemplateSettings })));
+const UploadPortal = lazy(() => import('./pages/UploadPortal').then(m => ({ default: m.UploadPortal })));
 
 export default function App() {
     return (
         <Router>
             <AuthProvider>
                 <ErrorBoundary>
-                    <Routes>
-                        <Route path="/login" element={<Login />} />
-                        {/* Upload Portal — public, no auth required (token-validated) */}
-                        <Route path="/upload/:token" element={<UploadPortal />} />
-                        <Route
-                            path="/dashboard"
-                            element={
-                                <RequireAuth>
-                                    <TourProvider>
-                                        <DashboardLayout />
-                                    </TourProvider>
-                                </RequireAuth>
-                            }
-                        >
-                            <Route index element={<Dashboard />} />
-                            <Route path="pipeline" element={<Pipeline />} />
-                            <Route path="projects" element={<Projects />} />
-                            <Route path="revenue" element={<Revenue />} />
-                            <Route path="scorecard" element={<Scorecard />} />
-                            <Route path="knowledge" element={<KnowledgeBase />} />
-                            <Route path="settings" element={<Settings />} />
-                            <Route path="settings/proposal-template" element={<ProposalTemplateSettings />} />
-                            <Route path="storage" element={<StorageBrowser />} />
-                            <Route path="scoping" element={<ScopingList />} />
-                            <Route path="scoping/new" element={<ScopingForm />} />
-                            <Route path="scoping/:id" element={<ScopingForm />} />
-                            <Route path="deals/:id" element={<DealWorkspace />} />
-                            <Route path="proposals/:id" element={<ProposalBuilder />} />
-                            <Route path="production" element={<ProductionPipeline />} />
-                            <Route path="production/:id" element={<ProductionDetail />} />
-                        </Route>
-                        {/* Field App — full-width, no sidebar (mobile-first for scan techs) */}
-                        <Route
-                            path="/field/:projectId"
-                            element={
-                                <RequireAuth>
-                                    <FieldCapture />
-                                </RequireAuth>
-                            }
-                        />
-                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                            <Route path="/login" element={<Login />} />
+                            {/* Upload Portal — public, no auth required (token-validated) */}
+                            <Route path="/upload/:token" element={<UploadPortal />} />
+                            <Route
+                                path="/dashboard"
+                                element={
+                                    <RequireAuth>
+                                        <TourProvider>
+                                            <DashboardLayout />
+                                        </TourProvider>
+                                    </RequireAuth>
+                                }
+                            >
+                                <Route index element={<Dashboard />} />
+                                <Route path="pipeline" element={<Pipeline />} />
+                                <Route path="projects" element={<Projects />} />
+                                <Route path="revenue" element={<Revenue />} />
+                                <Route path="scorecard" element={<Scorecard />} />
+                                <Route path="knowledge" element={<KnowledgeBase />} />
+                                <Route path="settings" element={<Settings />} />
+                                <Route path="settings/proposal-template" element={<ProposalTemplateSettings />} />
+                                <Route path="storage" element={<StorageBrowser />} />
+                                <Route path="scoping" element={<ScopingList />} />
+                                <Route path="scoping/new" element={<ScopingForm />} />
+                                <Route path="scoping/:id" element={<ScopingForm />} />
+                                <Route path="deals/:id" element={<DealWorkspace />} />
+                                <Route path="proposals/:id" element={<ProposalBuilder />} />
+                                <Route path="production" element={<ProductionPipeline />} />
+                                <Route path="production/:id" element={<ProductionDetail />} />
+                            </Route>
+                            {/* Field App — full-width, no sidebar (mobile-first for scan techs) */}
+                            <Route
+                                path="/field/:projectId"
+                                element={
+                                    <RequireAuth>
+                                        <FieldCapture />
+                                    </RequireAuth>
+                                }
+                            />
+                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                        </Routes>
+                    </Suspense>
                 </ErrorBoundary>
             </AuthProvider>
         </Router>

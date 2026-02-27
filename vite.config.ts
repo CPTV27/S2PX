@@ -18,6 +18,18 @@ export default defineConfig(({ mode }) => {
                 '@shared': path.resolve(__dirname, './shared'),
             },
         },
+        build: {
+            rollupOptions: {
+                output: {
+                    manualChunks: {
+                        'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                        'vendor-charts': ['recharts'],
+                        'vendor-motion': ['motion/react'],
+                        'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/storage'],
+                    },
+                },
+            },
+        },
         test: {
             exclude: [
                 'e2e/**',

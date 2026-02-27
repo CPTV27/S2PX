@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Activity, TrendingUp, Target, DollarSign, Gauge, ShieldCheck, Timer,
     Zap, ArrowUpRight, ArrowDownRight, Loader2, Milestone, Scan, Package,
@@ -41,29 +40,70 @@ const AXIS_STYLE = { stroke: '#94A3B8', fontSize: 12, tickLine: false as const, 
 export function Scorecard() {
     const [tab, setTab] = useState<Tab>('Overview');
     const [months, setMonths] = useState(12);
-    const [isLoading, setIsLoading] = useState(true);
+    const [tabLoading, setTabLoading] = useState(false);
+    const [initialLoad, setInitialLoad] = useState(true);
     const [overview, setOverview] = useState<ScorecardOverview | null>(null);
     const [pipeline, setPipeline] = useState<PipelineReport | null>(null);
     const [production, setProduction] = useState<ProductionReport | null>(null);
     const [profitability, setProfitability] = useState<ProfitabilityReport | null>(null);
 
-    useEffect(() => {
-        setIsLoading(true);
-        const filters = { months };
-        Promise.all([
-            fetchScorecardOverview(filters).catch(() => null),
-            fetchPipelineReport(filters).catch(() => null),
-            fetchProductionReport(filters).catch(() => null),
-            fetchProfitabilityReport(filters).catch(() => null),
-        ]).then(([o, p, pr, prof]) => {
-            setOverview(o);
-            setPipeline(p);
-            setProduction(pr);
-            setProfitability(prof);
-        }).finally(() => setIsLoading(false));
-    }, [months]);
+    // Track which tabs have been fetched for the current months filter
+    const fetchedTabs = useRef<Set<string>>(new Set());
+    const currentMonths = useRef(months);
 
-    if (isLoading) {
+    const fetchTab = useCallback(async (t: Tab, m: number) => {
+        // If months changed, invalidate cache
+        if (m !== currentMonths.current) {
+            fetchedTabs.current.clear();
+            currentMonths.current = m;
+        }
+
+        const cacheKey = `${t}-${m}`;
+        if (fetchedTabs.current.has(cacheKey)) return;
+
+        setTabLoading(true);
+        const filters = { months: m };
+        try {
+            switch (t) {
+                case 'Overview': {
+                    const data = await fetchScorecardOverview(filters).catch(() => null);
+                    setOverview(data);
+                    break;
+                }
+                case 'Pipeline': {
+                    const data = await fetchPipelineReport(filters).catch(() => null);
+                    setPipeline(data);
+                    break;
+                }
+                case 'Production': {
+                    const data = await fetchProductionReport(filters).catch(() => null);
+                    setProduction(data);
+                    break;
+                }
+                case 'Profitability': {
+                    const data = await fetchProfitabilityReport(filters).catch(() => null);
+                    setProfitability(data);
+                    break;
+                }
+            }
+            fetchedTabs.current.add(cacheKey);
+        } finally {
+            setTabLoading(false);
+            setInitialLoad(false);
+        }
+    }, []);
+
+    // Fetch active tab on mount and when months/tab changes
+    useEffect(() => {
+        fetchTab(tab, months);
+    }, [tab, months, fetchTab]);
+
+    const handleMonthsChange = (m: number) => {
+        setMonths(m);
+        // fetchTab will be triggered by useEffect
+    };
+
+    if (initialLoad) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loader2 className="animate-spin text-s2p-primary" size={32} />
@@ -83,7 +123,7 @@ export function Scorecard() {
                     {TIME_RANGES.map(r => (
                         <button
                             key={r.label}
-                            onClick={() => setMonths(r.months)}
+                            onClick={() => handleMonthsChange(r.months)}
                             className={cn(
                                 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors',
                                 months === r.months
@@ -112,26 +152,29 @@ export function Scorecard() {
             </div>
 
             {/* Tab Content */}
-            {tab === 'Overview' && <OverviewTab data={overview} />}
-            {tab === 'Pipeline' && <PipelineTab data={pipeline} />}
-            {tab === 'Production' && <ProductionTab data={production} />}
-            {tab === 'Profitability' && <ProfitabilityTab data={profitability} />}
+            {tabLoading ? (
+                <div className="flex items-center justify-center h-32">
+                    <Loader2 className="animate-spin text-s2p-primary" size={24} />
+                </div>
+            ) : (
+                <>
+                    {tab === 'Overview' && <OverviewTab data={overview} />}
+                    {tab === 'Pipeline' && <PipelineTab data={pipeline} />}
+                    {tab === 'Production' && <ProductionTab data={production} />}
+                    {tab === 'Profitability' && <ProfitabilityTab data={profitability} />}
+                </>
+            )}
         </div>
     );
 }
 
 // ── KPI Card Component ──
-function KpiCard({ label, value, icon: Icon, chip, color, delay = 0 }: {
+function KpiCard({ label, value, icon: Icon, chip, color }: {
     label: string; value: string | number; icon: any; chip: string;
-    color: string; delay?: number;
+    color: string;
 }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            className="bg-white border border-s2p-border rounded-2xl p-6 hover:shadow-lg hover:shadow-blue-500/5 transition-all"
-        >
+        <div className="bg-white border border-s2p-border rounded-2xl p-6 hover:shadow-lg hover:shadow-blue-500/5 transition-all">
             <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-xl ${color}`}>
                     <Icon size={20} />
@@ -142,24 +185,19 @@ function KpiCard({ label, value, icon: Icon, chip, color, delay = 0 }: {
             </div>
             <div className="text-3xl font-bold text-s2p-fg mb-1">{value}</div>
             <div className="text-sm text-s2p-muted">{label}</div>
-        </motion.div>
+        </div>
     );
 }
 
 // ── Chart Card Wrapper ──
-function ChartCard({ title, delay = 0, children, className = '' }: {
-    title: string; delay?: number; children: React.ReactNode; className?: string;
+function ChartCard({ title, children, className = '' }: {
+    title: string; children: React.ReactNode; className?: string;
 }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay }}
-            className={cn('bg-white border border-s2p-border rounded-2xl p-8 flex flex-col', className)}
-        >
+        <div className={cn('bg-white border border-s2p-border rounded-2xl p-8 flex flex-col', className)}>
             <h3 className="text-lg font-semibold mb-6">{title}</h3>
             <div className="flex-1 min-h-0">{children}</div>
-        </motion.div>
+        </div>
     );
 }
 
@@ -196,13 +234,13 @@ function OverviewTab({ data }: { data: ScorecardOverview | null }) {
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                {kpis.map((k, i) => (
-                    <KpiCard key={k.label} {...k} delay={i * 0.08} />
+                {kpis.map((k) => (
+                    <KpiCard key={k.label} {...k} />
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <ChartCard title="Monthly Revenue: Actual vs Estimated" delay={0.3} className="h-[400px]">
+                <ChartCard title="Monthly Revenue: Actual vs Estimated" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.monthlyRevenue}>
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v) => formatCurrency(v as number)} />
@@ -216,7 +254,7 @@ function OverviewTab({ data }: { data: ScorecardOverview | null }) {
                     </ResponsiveContainer>
                 </ChartCard>
 
-                <ChartCard title="Win Rate Trend" delay={0.4} className="h-[400px]">
+                <ChartCard title="Win Rate Trend" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data.monthlyWinRate}>
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v, name) => name === 'rate' ? `${v}%` : v} />
@@ -249,7 +287,7 @@ function PipelineTab({ data }: { data: PipelineReport | null }) {
             {/* Tier stat cards */}
             {data.avgDealByTier.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {data.avgDealByTier.map((t, i) => (
+                    {data.avgDealByTier.map((t) => (
                         <KpiCard
                             key={t.tier}
                             label={`${t.tier} Avg Deal`}
@@ -257,14 +295,13 @@ function PipelineTab({ data }: { data: PipelineReport | null }) {
                             icon={Package}
                             chip={`${t.count} deals`}
                             color={t.tier === 'Whale' ? 'text-blue-500 bg-blue-50' : t.tier === 'Dolphin' ? 'text-indigo-500 bg-indigo-50' : 'text-slate-500 bg-slate-100'}
-                            delay={i * 0.1}
                         />
                     ))}
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <ChartCard title="Deal Funnel" delay={0.2} className="h-[400px]">
+                <ChartCard title="Deal Funnel" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.funnel} layout="vertical">
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v) => formatCurrency(v as number)} />
@@ -279,7 +316,7 @@ function PipelineTab({ data }: { data: PipelineReport | null }) {
                     </ResponsiveContainer>
                 </ChartCard>
 
-                <ChartCard title="Monthly Pipeline Activity" delay={0.3} className="h-[400px]">
+                <ChartCard title="Monthly Pipeline Activity" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.monthlyTrend}>
                             <Tooltip contentStyle={CHART_TOOLTIP} />
@@ -296,7 +333,7 @@ function PipelineTab({ data }: { data: PipelineReport | null }) {
 
             {/* Win rate by source */}
             {data.winRateBySource.length > 0 && (
-                <ChartCard title="Win Rate by Lead Source" delay={0.4} className="h-[400px]">
+                <ChartCard title="Win Rate by Lead Source" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.winRateBySource} layout="vertical">
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v) => `${v}%`} />
@@ -334,7 +371,6 @@ function ProductionTab({ data }: { data: ProductionReport | null }) {
                     icon={Scan}
                     chip={`${qg.fieldRms.pass}/${qg.fieldRms.total}`}
                     color={kpiColor(qg.fieldRms.passRate, 90, 70)}
-                    delay={0}
                 />
                 <KpiCard
                     label="Avg Overlap Pass Rate"
@@ -342,7 +378,6 @@ function ProductionTab({ data }: { data: ProductionReport | null }) {
                     icon={Gauge}
                     chip={`${qg.avgOverlap.pass}/${qg.avgOverlap.total}`}
                     color={kpiColor(qg.avgOverlap.passRate, 90, 70)}
-                    delay={0.1}
                 />
                 <KpiCard
                     label="QC Pass Rate"
@@ -350,13 +385,12 @@ function ProductionTab({ data }: { data: ProductionReport | null }) {
                     icon={ShieldCheck}
                     chip={`${qg.qcStatus.pass}P / ${qg.qcStatus.fail}F / ${qg.qcStatus.conditional}C`}
                     color={kpiColor(qg.qcStatus.total > 0 ? (qg.qcStatus.pass / qg.qcStatus.total) * 100 : 0, 85, 70)}
-                    delay={0.2}
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Stage distribution */}
-                <ChartCard title="Stage Distribution" delay={0.3} className="h-[400px]">
+                <ChartCard title="Stage Distribution" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.stageDistribution}>
                             <Tooltip contentStyle={CHART_TOOLTIP} />
@@ -372,7 +406,7 @@ function ProductionTab({ data }: { data: ProductionReport | null }) {
                 </ChartCard>
 
                 {/* Monthly throughput */}
-                <ChartCard title="Monthly Throughput" delay={0.4} className="h-[400px]">
+                <ChartCard title="Monthly Throughput" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data.monthlyThroughput}>
                             <Tooltip contentStyle={CHART_TOOLTIP} />
@@ -389,7 +423,7 @@ function ProductionTab({ data }: { data: ProductionReport | null }) {
 
             {/* Estimate vs Actual SF table */}
             {data.estimateVsActual.byProject.length > 0 && (
-                <ChartCard title="Estimate vs Actual SF" delay={0.5}>
+                <ChartCard title="Estimate vs Actual SF">
                     <div className="flex items-center gap-6 mb-4 text-sm">
                         <div>Est Total: <span className="font-bold">{data.estimateVsActual.totalEstSF.toLocaleString()} SF</span></div>
                         <div>Actual: <span className="font-bold">{data.estimateVsActual.totalActualSF.toLocaleString()} SF</span></div>
@@ -447,7 +481,7 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
             {/* Margin by tier cards */}
             {data.avgMarginByTier.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {data.avgMarginByTier.map((t, i) => (
+                    {data.avgMarginByTier.map((t) => (
                         <KpiCard
                             key={t.tier}
                             label={`${t.tier} Avg Margin`}
@@ -455,7 +489,6 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
                             icon={TrendingUp}
                             chip={`${t.count} deals`}
                             color={kpiColor(t.avgMargin, 45, 40)}
-                            delay={i * 0.1}
                         />
                     ))}
                 </div>
@@ -463,7 +496,7 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Margin distribution */}
-                <ChartCard title="Margin Distribution" delay={0.2} className="h-[400px]">
+                <ChartCard title="Margin Distribution" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.marginDistribution}>
                             <Tooltip contentStyle={CHART_TOOLTIP} />
@@ -479,7 +512,7 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
                 </ChartCard>
 
                 {/* Monthly margin trend */}
-                <ChartCard title="Monthly Margin Trend" delay={0.3} className="h-[400px]">
+                <ChartCard title="Monthly Margin Trend" className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data.monthlyMarginTrend}>
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v, name) => name === 'avgMargin' ? `${v}%` : formatCurrency(v as number)} />
@@ -494,7 +527,7 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
 
             {/* Cost per SF */}
             {data.costPerSF.length > 0 && (
-                <ChartCard title="Cost & Price per SF by Tier" delay={0.4} className="h-[350px]">
+                <ChartCard title="Cost & Price per SF by Tier" className="h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.costPerSF}>
                             <Tooltip contentStyle={CHART_TOOLTIP} formatter={(v) => `$${(v as number).toFixed(2)}/SF`} />
@@ -509,7 +542,7 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
             )}
 
             {/* Travel cost breakdown */}
-            <ChartCard title="Travel Cost Breakdown" delay={0.5}>
+            <ChartCard title="Travel Cost Breakdown">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {[
                         { label: 'Total Miles', value: data.travelCostBreakdown.totalMilesDriven.toLocaleString() },
@@ -533,15 +566,11 @@ function ProfitabilityTab({ data }: { data: ProfitabilityReport | null }) {
 
 function EmptyState() {
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16 text-s2p-muted"
-        >
+        <div className="text-center py-16 text-s2p-muted">
             <Activity size={48} className="mx-auto mb-4 opacity-30" />
             <p className="text-lg font-medium">No data available</p>
             <p className="text-sm mt-1">Start adding scoping forms and closing deals to see metrics.</p>
-        </motion.div>
+        </div>
     );
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
     TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight, Loader2,
@@ -41,6 +41,16 @@ const TABS = [
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
+
+// ── Tab data cache shape ──
+interface TabCache {
+    revenue?: ActualRevenueData;
+    pnl?: PnlSummary;
+    expenses?: ExpenseSummaryData;
+    customers?: QBOCustomerListData;
+    estimates?: EstimateConversionData;
+    balance?: BalanceSheetData;
+}
 
 // ── CFO Agent Chat ──
 
@@ -214,9 +224,9 @@ function CFOAgent({ context }: { context: string }) {
 
 export function Revenue() {
     const [activeTab, setActiveTab] = useState<TabKey>('revenue');
-    const [isLoading, setIsLoading] = useState(true);
+    const [tabLoading, setTabLoading] = useState(false);
 
-    // Data states
+    // Per-tab data states
     const [revenueData, setRevenueData] = useState<ActualRevenueData | null>(null);
     const [pnlData, setPnlData] = useState<PnlSummary | null>(null);
     const [expenseData, setExpenseData] = useState<ExpenseSummaryData | null>(null);
@@ -224,54 +234,77 @@ export function Revenue() {
     const [estimateData, setEstimateData] = useState<EstimateConversionData | null>(null);
     const [balanceData, setBalanceData] = useState<BalanceSheetData | null>(null);
 
-    useEffect(() => {
-        async function loadAll() {
-            try {
-                const [rev, pnl, exp, cust, est, bal] = await Promise.all([
-                    fetchActualRevenue(),
-                    fetchPnlSummary(),
-                    fetchExpensesSummary(),
-                    fetchQBOCustomers(),
-                    fetchEstimateConversion(),
-                    fetchBalanceSheet(),
-                ]);
-                setRevenueData(rev);
-                setPnlData(pnl);
-                setExpenseData(exp);
-                setCustomerData(cust);
-                setEstimateData(est);
-                setBalanceData(bal);
-            } catch (e) {
-                console.error('Financial data load failed:', e);
-            } finally {
-                setIsLoading(false);
+    // Cache of which tabs have already been fetched — switching back is instant
+    const fetchedTabs = useRef<Set<TabKey>>(new Set());
+
+    const fetchTab = useCallback(async (tab: TabKey) => {
+        if (fetchedTabs.current.has(tab)) return;
+        setTabLoading(true);
+        try {
+            switch (tab) {
+                case 'revenue': {
+                    const data = await fetchActualRevenue();
+                    setRevenueData(data);
+                    break;
+                }
+                case 'pnl': {
+                    const data = await fetchPnlSummary();
+                    setPnlData(data);
+                    break;
+                }
+                case 'expenses': {
+                    const data = await fetchExpensesSummary();
+                    setExpenseData(data);
+                    break;
+                }
+                case 'customers': {
+                    const data = await fetchQBOCustomers();
+                    setCustomerData(data);
+                    break;
+                }
+                case 'estimates': {
+                    const data = await fetchEstimateConversion();
+                    setEstimateData(data);
+                    break;
+                }
+                case 'balance': {
+                    const data = await fetchBalanceSheet();
+                    setBalanceData(data);
+                    break;
+                }
             }
+            fetchedTabs.current.add(tab);
+        } catch (e) {
+            console.error(`Financial data load failed for tab "${tab}":`, e);
+        } finally {
+            setTabLoading(false);
         }
-        loadAll();
     }, []);
 
-    // Build CFO context string from loaded data
-    const cfoContext = revenueData && pnlData ? [
-        `Total all-time revenue: ${formatCurrency(revenueData.totalRevenue)}`,
-        `YTD revenue: ${formatCurrency(revenueData.ytdRevenue)}`,
-        `Net income (all-time): ${formatCurrency(pnlData.netIncome)}`,
-        `Total COGS: ${formatCurrency(pnlData.totalCOGS)}`,
-        `Total expenses: ${formatCurrency(pnlData.totalExpenses)}`,
-        `Total customers: ${customerData?.totalCustomers ?? 0}`,
-        `Active customers (12mo): ${customerData?.activeCustomers ?? 0}`,
-        `Estimate conversion rate: ${estimateData ? (estimateData.conversionRate * 100).toFixed(1) : 0}%`,
-        `Total assets: ${balanceData ? formatCurrency(balanceData.totalAssets) : 'N/A'}`,
-        `Total liabilities: ${balanceData ? formatCurrency(balanceData.totalLiabilities) : 'N/A'}`,
-        revenueData.topCustomers.slice(0, 5).map(c => `${c.customerName}: ${formatCurrency(c.revenue)}`).join(', '),
-    ].join('\n') : '';
+    // On mount: fetch only the default active tab
+    useEffect(() => {
+        fetchTab('revenue');
+    }, [fetchTab]);
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="animate-spin text-s2p-primary" size={32} />
-            </div>
-        );
-    }
+    const handleTabSwitch = (tab: TabKey) => {
+        setActiveTab(tab);
+        fetchTab(tab);
+    };
+
+    // Build CFO context from whatever data is available so far
+    const cfoContext = [
+        revenueData && `Total all-time revenue: ${formatCurrency(revenueData.totalRevenue)}`,
+        revenueData && `YTD revenue: ${formatCurrency(revenueData.ytdRevenue)}`,
+        pnlData && `Net income (all-time): ${formatCurrency(pnlData.netIncome)}`,
+        pnlData && `Total COGS: ${formatCurrency(pnlData.totalCOGS)}`,
+        pnlData && `Total expenses: ${formatCurrency(pnlData.totalExpenses)}`,
+        customerData && `Total customers: ${customerData.totalCustomers}`,
+        customerData && `Active customers (12mo): ${customerData.activeCustomers}`,
+        estimateData && `Estimate conversion rate: ${(estimateData.conversionRate * 100).toFixed(1)}%`,
+        balanceData && `Total assets: ${formatCurrency(balanceData.totalAssets)}`,
+        balanceData && `Total liabilities: ${formatCurrency(balanceData.totalLiabilities)}`,
+        revenueData && revenueData.topCustomers.slice(0, 5).map(c => `${c.customerName}: ${formatCurrency(c.revenue)}`).join(', '),
+    ].filter(Boolean).join('\n');
 
     return (
         <div className="space-y-6">
@@ -297,7 +330,7 @@ export function Revenue() {
                     return (
                         <button
                             key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
+                            onClick={() => handleTabSwitch(tab.key)}
                             className={cn(
                                 'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap',
                                 isActive
@@ -313,22 +346,19 @@ export function Revenue() {
             </div>
 
             {/* Tab Content */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.15 }}
-                >
-                    {activeTab === 'revenue' && revenueData && <RevenueTab data={revenueData} />}
-                    {activeTab === 'pnl' && pnlData && <PnlTab data={pnlData} />}
-                    {activeTab === 'expenses' && expenseData && <ExpensesTab data={expenseData} />}
-                    {activeTab === 'customers' && customerData && <CustomersTab data={customerData} />}
-                    {activeTab === 'estimates' && estimateData && <EstimatesTab data={estimateData} />}
-                    {activeTab === 'balance' && balanceData && <BalanceTab data={balanceData} />}
-                </motion.div>
-            </AnimatePresence>
+            <div>
+                {tabLoading && (
+                    <div className="flex items-center justify-center h-32">
+                        <Loader2 className="animate-spin text-s2p-primary" size={24} />
+                    </div>
+                )}
+                {!tabLoading && activeTab === 'revenue' && revenueData && <RevenueTab data={revenueData} />}
+                {!tabLoading && activeTab === 'pnl' && pnlData && <PnlTab data={pnlData} />}
+                {!tabLoading && activeTab === 'expenses' && expenseData && <ExpensesTab data={expenseData} />}
+                {!tabLoading && activeTab === 'customers' && customerData && <CustomersTab data={customerData} />}
+                {!tabLoading && activeTab === 'estimates' && estimateData && <EstimatesTab data={estimateData} />}
+                {!tabLoading && activeTab === 'balance' && balanceData && <BalanceTab data={balanceData} />}
+            </div>
 
             {/* CFO Agent */}
             <CFOAgent context={cfoContext} />
@@ -361,13 +391,12 @@ function RevenueTab({ data }: { data: ActualRevenueData }) {
                     { label: 'YTD Revenue', value: formatCurrency(data.ytdRevenue), sub: `${ytdMonths.length} months` },
                     { label: 'Monthly Avg (YTD)', value: formatCurrency(avgMonthly), sub: 'run rate' },
                     { label: 'YoY Growth', value: `${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth.toFixed(1)}%`, sub: `vs ${new Date().getFullYear() - 1}` },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white border border-s2p-border rounded-2xl p-5">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white border border-s2p-border rounded-2xl p-5">
                         <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">{kpi.label}</div>
                         <div className="text-2xl font-bold text-s2p-fg">{kpi.value}</div>
                         <div className="text-xs text-s2p-muted mt-1">{kpi.sub}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
@@ -440,12 +469,11 @@ function PnlTab({ data }: { data: PnlSummary }) {
                     { label: 'Gross Margin', value: `${grossMargin.toFixed(1)}%`, color: 'text-blue-600' },
                     { label: 'Expenses', value: formatCurrency(data.totalExpenses), color: 'text-red-600' },
                     { label: 'Net Income', value: formatCurrency(data.netIncome), color: data.netIncome >= 0 ? 'text-green-600' : 'text-red-600' },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                        className="bg-white border border-s2p-border rounded-xl p-4">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white border border-s2p-border rounded-xl p-4">
                         <div className="text-[10px] text-s2p-muted font-mono uppercase tracking-wider mb-1">{kpi.label}</div>
                         <div className={cn('text-lg font-bold', kpi.color)}>{kpi.value}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
@@ -482,34 +510,34 @@ function ExpensesTab({ data }: { data: ExpenseSummaryData }) {
                     { label: 'Total Expenses (All Time)', value: formatCurrency(data.totalAllTime) },
                     { label: 'Trailing 12 Months', value: formatCurrency(data.totalTrailing12mo) },
                     { label: 'Vendor Count', value: data.vendorCount.toString() },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white border border-s2p-border rounded-2xl p-5">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white border border-s2p-border rounded-2xl p-5">
                         <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">{kpi.label}</div>
                         <div className="text-2xl font-bold text-s2p-fg">{kpi.value}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
             <div className="bg-white border border-s2p-border rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-s2p-fg mb-4">Top Vendors by Spend</h3>
                 <div className="space-y-2">
-                    {topVendors.map((v, i) => (
-                        <div key={v.vendor} className="flex items-center gap-3">
-                            <span className="text-xs text-s2p-muted w-6 text-right">{i + 1}</span>
-                            <span className="text-sm font-medium w-48 truncate">{v.vendor}</span>
-                            <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(v.totalAllTime / maxExpense) * 100}%` }}
-                                    transition={{ delay: i * 0.02, duration: 0.4 }}
-                                    className="h-full bg-blue-500/70 rounded-full"
-                                />
+                    {topVendors.map((v, i) => {
+                        const percentage = (v.totalAllTime / maxExpense) * 100;
+                        return (
+                            <div key={v.vendor} className="flex items-center gap-3">
+                                <span className="text-xs text-s2p-muted w-6 text-right">{i + 1}</span>
+                                <span className="text-sm font-medium w-48 truncate">{v.vendor}</span>
+                                <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-500/70 rounded-full transition-all duration-500"
+                                        style={{ width: `${percentage}%` }}
+                                    />
+                                </div>
+                                <span className="text-xs font-mono text-s2p-muted w-24 text-right">{formatCurrency(v.totalAllTime)}</span>
+                                <span className="text-xs font-mono text-emerald-600 w-24 text-right">{formatCurrency(v.totalTrailing12mo)}</span>
                             </div>
-                            <span className="text-xs font-mono text-s2p-muted w-24 text-right">{formatCurrency(v.totalAllTime)}</span>
-                            <span className="text-xs font-mono text-emerald-600 w-24 text-right">{formatCurrency(v.totalTrailing12mo)}</span>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
                 <div className="flex justify-end gap-8 mt-3 text-[10px] font-mono text-s2p-muted">
                     <span>All Time</span>
@@ -536,12 +564,11 @@ function CustomersTab({ data }: { data: QBOCustomerListData }) {
                     { label: 'Total Customers', value: data.totalCustomers },
                     { label: 'Active (12mo)', value: data.activeCustomers },
                     { label: 'Inactive', value: data.totalCustomers - data.activeCustomers },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white border border-s2p-border rounded-2xl p-5">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white border border-s2p-border rounded-2xl p-5">
                         <div className="text-xs text-s2p-muted font-mono uppercase tracking-wider mb-1">{kpi.label}</div>
                         <div className="text-2xl font-bold text-s2p-fg">{kpi.value}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
@@ -605,12 +632,11 @@ function EstimatesTab({ data }: { data: EstimateConversionData }) {
                     { label: 'Invoiced', value: data.invoicedCount },
                     { label: 'Conversion Rate', value: `${(data.conversionRate * 100).toFixed(1)}%` },
                     { label: 'Estimate Value', value: formatCurrency(data.totalEstimateValue) },
-                ].map((kpi, i) => (
-                    <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                        className="bg-white border border-s2p-border rounded-xl p-4">
+                ].map((kpi) => (
+                    <div key={kpi.label} className="bg-white border border-s2p-border rounded-xl p-4">
                         <div className="text-[10px] text-s2p-muted font-mono uppercase tracking-wider mb-1">{kpi.label}</div>
                         <div className="text-lg font-bold text-s2p-fg">{kpi.value}</div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 
@@ -667,18 +693,18 @@ function BalanceTab({ data }: { data: BalanceSheetData }) {
                 Snapshot as of {data.snapshotDate ? new Date(data.snapshotDate).toLocaleDateString() : 'N/A'}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-s2p-border rounded-xl p-4">
+                <div className="bg-white border border-s2p-border rounded-xl p-4">
                     <div className="text-[10px] text-s2p-muted font-mono uppercase mb-1">Total Assets</div>
                     <div className="text-xl font-bold text-green-600">{formatCurrency(data.totalAssets)}</div>
-                </motion.div>
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white border border-s2p-border rounded-xl p-4">
+                </div>
+                <div className="bg-white border border-s2p-border rounded-xl p-4">
                     <div className="text-[10px] text-s2p-muted font-mono uppercase mb-1">Total Liabilities</div>
                     <div className="text-xl font-bold text-red-600">{formatCurrency(data.totalLiabilities)}</div>
-                </motion.div>
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white border border-s2p-border rounded-xl p-4">
+                </div>
+                <div className="bg-white border border-s2p-border rounded-xl p-4">
                     <div className="text-[10px] text-s2p-muted font-mono uppercase mb-1">Total Equity</div>
                     <div className="text-xl font-bold text-blue-600">{formatCurrency(data.totalEquity)}</div>
-                </motion.div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
