@@ -89,6 +89,17 @@ export function KnowledgeBase() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ── Respond to ?s= changes from CommandPalette / deep links ──
+    useEffect(() => {
+        const urlSlug = searchParams.get('s');
+        if (urlSlug && urlSlug !== activeSlug && sections.length > 0) {
+            const match = sections.find(s => s.slug === urlSlug);
+            if (match) {
+                setActiveSlug(urlSlug);
+            }
+        }
+    }, [searchParams, sections, activeSlug]);
+
     // ── Load section content when activeSlug changes ──
     useEffect(() => {
         if (!activeSlug) return;
