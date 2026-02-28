@@ -3,7 +3,7 @@ import type { ScopingFormValues } from '@/hooks/useScopingForm';
 import { FormField, inputStyles, selectStyles } from './FormField';
 import { FormSection } from './FormSection';
 import { FileUpload } from './FileUpload';
-import { BIM_DELIVERABLES } from '@shared/schema/constants';
+import { BIM_DELIVERABLES, BIM_VERSIONS } from '@shared/schema/constants';
 
 interface SectionFProps {
     upid?: string;
@@ -23,8 +23,11 @@ export function SectionF({ upid }: SectionFProps) {
                     </select>
                 </FormField>
 
-                <FormField label="BIM Version" hint='e.g., "Revit 2024"'>
-                    <input {...register('bimVersion')} className={inputStyles} placeholder="Revit 2024" />
+                <FormField label="BIM Version">
+                    <select {...register('bimVersion')} className={selectStyles}>
+                        <option value="">Select...</option>
+                        {BIM_VERSIONS.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
                 </FormField>
 
                 <FormField label="Custom Template?">

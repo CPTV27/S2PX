@@ -40,6 +40,15 @@ export const LANDSCAPE_TERRAIN_TYPES = ['Urban-Built', 'Natural', 'Forested'] as
 // Section F — BIM Deliverable (SF-11)
 export const BIM_DELIVERABLES = ['Revit', 'ArchiCAD', 'SketchUp', 'Rhino', 'Other'] as const;
 
+// Section F — BIM Version (SF-12)
+export const BIM_VERSIONS = [
+    'Revit 2025', 'Revit 2024', 'Revit 2023', 'Revit 2022', 'Revit 2021',
+    'ArchiCAD 28', 'ArchiCAD 27', 'ArchiCAD 26', 'ArchiCAD 25',
+    'SketchUp 2024', 'SketchUp 2023',
+    'Rhino 8', 'Rhino 7',
+    'Other',
+] as const;
+
 // Section G — Era (SF-41)
 export const ERAS = ['Modern', 'Historic'] as const;
 
