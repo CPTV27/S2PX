@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { FormProvider } from 'react-hook-form';
-import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, Banknote, FileText, ChevronRight } from 'lucide-react';
 import { useScopingForm, type SaveStatus } from '@/hooks/useScopingForm';
 import { SectionA } from '@/components/scoping/SectionA';
 import { SectionB } from '@/components/scoping/SectionB';
@@ -137,6 +137,26 @@ export function ScopingForm() {
                     <SectionN upid={upid} />
                     <SectionO />
                 </div>
+
+                {/* Sticky action bar at bottom */}
+                {serverForm && (
+                    <div className="sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-t border-slate-200 flex items-center justify-between">
+                        <div className="text-xs text-slate-400">
+                            <SaveIndicator status={saveStatus} />
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/dashboard/deals/${serverForm.id}`)}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors"
+                            >
+                                <Banknote size={16} />
+                                Price this Deal
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </FormProvider>
     );
