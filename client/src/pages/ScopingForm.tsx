@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FormProvider } from 'react-hook-form';
 import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, Banknote, FileText, ChevronRight, ArrowRight, ClipboardList, DollarSign, Send } from 'lucide-react';
 import { useScopingForm, type SaveStatus } from '@/hooks/useScopingForm';
+import { PropertyMap } from '@/components/PropertyMap';
 import { SectionA } from '@/components/scoping/SectionA';
 import { SectionB } from '@/components/scoping/SectionB';
 import { SectionC } from '@/components/scoping/SectionC';
@@ -53,14 +55,33 @@ export function ScopingForm() {
     const isNew = !formId;
     const upid = serverForm?.upid;
 
-    const handleInitialSave = async () => {
-        const valid = await form.trigger();
-        if (!valid) return;
+    const [createError, setCreateError] = useState<string | null>(null);
 
-        const values = form.getValues();
-        const created = await createForm(values);
-        if (created?.id) {
-            navigate(`/dashboard/scoping/${created.id}`, { replace: true });
+    const handleInitialSave = async () => {
+        setCreateError(null);
+        const valid = await form.trigger();
+        if (!valid) {
+            // Scroll to the first field with an error
+            const firstError = Object.keys(form.formState.errors)[0];
+            if (firstError) {
+                const el = document.querySelector(`[name="${firstError}"]`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            setCreateError('Please fix the highlighted fields before saving.');
+            return;
+        }
+
+        try {
+            const values = form.getValues();
+            const created = await createForm(values);
+            if (created?.id) {
+                navigate(`/dashboard/scoping/${created.id}`, { replace: true });
+            } else {
+                setCreateError('Save failed — please try again.');
+            }
+        } catch (err: any) {
+            console.error('Create form error:', err);
+            setCreateError(err.message || 'Save failed — please try again.');
         }
     };
 
@@ -102,10 +123,15 @@ export function ScopingForm() {
                             <button
                                 type="button"
                                 onClick={handleInitialSave}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                disabled={saveStatus === 'saving'}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                             >
-                                <Save size={16} />
-                                Create & Save
+                                {saveStatus === 'saving' ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Save size={16} />
+                                )}
+                                {saveStatus === 'saving' ? 'Saving...' : 'Create & Save'}
                             </button>
                         )}
 
@@ -116,6 +142,21 @@ export function ScopingForm() {
                         )}
                     </div>
                 </div>
+
+                {/* Validation / save error banner */}
+                {createError && (
+                    <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                        <AlertCircle size={16} className="shrink-0" />
+                        <span>{createError}</span>
+                        <button
+                            type="button"
+                            onClick={() => setCreateError(null)}
+                            className="ml-auto text-red-400 hover:text-red-600 text-xs"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
 
                 {/* ── Workflow Banner — NEXT STEPS ── */}
                 {!isNew && (
@@ -165,6 +206,21 @@ export function ScopingForm() {
                 {/* Form Sections */}
                 <div className="space-y-3">
                     <SectionA upid={upid} />
+
+                    {/* Property Satellite View — shows after form is saved with an address */}
+                    {!isNew && serverForm?.projectAddress && (
+                        <PropertyMap
+                            address={serverForm.projectAddress}
+                            lat={serverForm.projectLat ? Number(serverForm.projectLat) : null}
+                            lng={serverForm.projectLng ? Number(serverForm.projectLng) : null}
+                            footprintSqft={serverForm.buildingFootprintSqft}
+                            scopingFormId={formId}
+                            height={250}
+                            showFootprint
+                            className="rounded-2xl"
+                        />
+                    )}
+
                     <SectionB />
                     <SectionC />
                     <SectionD

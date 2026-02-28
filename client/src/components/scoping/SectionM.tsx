@@ -17,8 +17,22 @@ export function SectionM() {
                     </select>
                 </FormField>
 
-                <FormField label="Project Timeline" hint='e.g., "Q1 2026, Urgent"'>
-                    <input {...register('projectTimeline')} className={inputStyles} placeholder="Q1 2026" />
+                <FormField label="Project Timeline">
+                    <select {...register('projectTimeline')} className={selectStyles}>
+                        <option value="">Select...</option>
+                        {(() => {
+                            const currentYear = new Date().getFullYear();
+                            const quarters: string[] = [];
+                            for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+                                for (let q = 1; q <= 4; q++) {
+                                    quarters.push(`Q${q} ${year}`);
+                                }
+                            }
+                            return quarters.map(q => <option key={q} value={q}>{q}</option>);
+                        })()}
+                        <option value="ASAP">ASAP</option>
+                        <option value="TBD">TBD</option>
+                    </select>
                 </FormField>
 
                 <FormField label="Notes on Timeline" className="md:col-span-2">

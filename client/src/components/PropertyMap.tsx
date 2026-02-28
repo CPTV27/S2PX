@@ -7,7 +7,7 @@ import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Loader2, MapPin, Maximize2, Building2 } from 'lucide-react';
 import { geoLookup, type GeoLookupResult } from '@/services/api';
 
-const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 interface PropertyMapProps {
     address: string;

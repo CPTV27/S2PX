@@ -1,14 +1,15 @@
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import type { ScopingFormValues } from '@/hooks/useScopingForm';
 import { FormField, inputStyles } from './FormField';
 import { FormSection } from './FormSection';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface SectionAProps {
     upid?: string;
 }
 
 export function SectionA({ upid }: SectionAProps) {
-    const { register, formState: { errors } } = useFormContext<ScopingFormValues>();
+    const { register, control, formState: { errors } } = useFormContext<ScopingFormValues>();
 
     return (
         <FormSection title="Section A" subtitle="Project Identification" badge="6 fields" defaultOpen>
@@ -22,7 +23,17 @@ export function SectionA({ upid }: SectionAProps) {
                 </FormField>
 
                 <FormField label="Project Address" required error={errors.projectAddress?.message} className="md:col-span-2">
-                    <input {...register('projectAddress')} className={inputStyles} placeholder="123 Main St, Troy, NY 12180" />
+                    <Controller
+                        name="projectAddress"
+                        control={control}
+                        render={({ field }) => (
+                            <AddressAutocomplete
+                                value={field.value ?? ''}
+                                onChange={field.onChange}
+                                placeholder="123 Main St, Troy, NY 12180"
+                            />
+                        )}
+                    />
                 </FormField>
 
                 <FormField label="Specific Building or Unit" error={errors.specificBuilding?.message}>
