@@ -95,7 +95,7 @@ export function ScopingForm() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <SaveIndicator status={saveStatus} />
 
                         {isNew && (
@@ -110,9 +110,20 @@ export function ScopingForm() {
                         )}
 
                         {serverForm && (
-                            <div className="text-xs text-slate-400">
-                                Status: <span className="font-medium text-slate-600 capitalize">{serverForm.status}</span>
-                            </div>
+                            <>
+                                <div className="text-xs text-slate-400">
+                                    Status: <span className="font-medium text-slate-600 capitalize">{serverForm.status}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/dashboard/deals/${serverForm.id}`)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+                                >
+                                    <Banknote size={16} />
+                                    Price this Deal
+                                    <ChevronRight size={14} />
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
