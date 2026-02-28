@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
     TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight, Loader2,
     BarChart3, PieChart, Users, FileText, Scale, Bot, Send, X,
-    Sparkles, ChevronRight,
+    Sparkles, ChevronRight, RefreshCw,
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -234,12 +234,16 @@ export function Revenue() {
     const [estimateData, setEstimateData] = useState<EstimateConversionData | null>(null);
     const [balanceData, setBalanceData] = useState<BalanceSheetData | null>(null);
 
+    // Track errors per tab
+    const [tabError, setTabError] = useState<string | null>(null);
+
     // Cache of which tabs have already been fetched — switching back is instant
     const fetchedTabs = useRef<Set<TabKey>>(new Set());
 
     const fetchTab = useCallback(async (tab: TabKey) => {
         if (fetchedTabs.current.has(tab)) return;
         setTabLoading(true);
+        setTabError(null);
         try {
             switch (tab) {
                 case 'revenue': {
@@ -274,8 +278,9 @@ export function Revenue() {
                 }
             }
             fetchedTabs.current.add(tab);
-        } catch (e) {
+        } catch (e: any) {
             console.error(`Financial data load failed for tab "${tab}":`, e);
+            setTabError(`Failed to load ${TABS.find(t => t.key === tab)?.label ?? tab} data. The QuickBooks data may not be synced yet.`);
         } finally {
             setTabLoading(false);
         }
@@ -288,7 +293,14 @@ export function Revenue() {
 
     const handleTabSwitch = (tab: TabKey) => {
         setActiveTab(tab);
+        setTabError(null);
         fetchTab(tab);
+    };
+
+    const retryTab = () => {
+        fetchedTabs.current.delete(activeTab);
+        setTabError(null);
+        fetchTab(activeTab);
     };
 
     // Build CFO context from whatever data is available so far
@@ -352,12 +364,27 @@ export function Revenue() {
                         <Loader2 className="animate-spin text-s2p-primary" size={24} />
                     </div>
                 )}
-                {!tabLoading && activeTab === 'revenue' && revenueData && <RevenueTab data={revenueData} />}
-                {!tabLoading && activeTab === 'pnl' && pnlData && <PnlTab data={pnlData} />}
-                {!tabLoading && activeTab === 'expenses' && expenseData && <ExpensesTab data={expenseData} />}
-                {!tabLoading && activeTab === 'customers' && customerData && <CustomersTab data={customerData} />}
-                {!tabLoading && activeTab === 'estimates' && estimateData && <EstimatesTab data={estimateData} />}
-                {!tabLoading && activeTab === 'balance' && balanceData && <BalanceTab data={balanceData} />}
+                {!tabLoading && tabError && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                            <BarChart3 size={20} className="text-red-400" />
+                        </div>
+                        <p className="text-sm text-slate-600 mb-1">{tabError}</p>
+                        <button
+                            onClick={retryTab}
+                            className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                        >
+                            <RefreshCw size={12} />
+                            Retry
+                        </button>
+                    </div>
+                )}
+                {!tabLoading && !tabError && activeTab === 'revenue' && revenueData && <RevenueTab data={revenueData} />}
+                {!tabLoading && !tabError && activeTab === 'pnl' && pnlData && <PnlTab data={pnlData} />}
+                {!tabLoading && !tabError && activeTab === 'expenses' && expenseData && <ExpensesTab data={expenseData} />}
+                {!tabLoading && !tabError && activeTab === 'customers' && customerData && <CustomersTab data={customerData} />}
+                {!tabLoading && !tabError && activeTab === 'estimates' && estimateData && <EstimatesTab data={estimateData} />}
+                {!tabLoading && !tabError && activeTab === 'balance' && balanceData && <BalanceTab data={balanceData} />}
             </div>
 
             {/* CFO Agent */}

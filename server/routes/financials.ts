@@ -94,14 +94,14 @@ router.get('/pnl-summary', async (req: Request, res: Response) => {
         const monthly = await db.execute(sql`
             SELECT
                 month,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Income'), 0)::numeric          AS income,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Cost of Goods Sold'), 0)::numeric AS cogs,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Expenses'), 0)::numeric        AS expenses,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Other Income'), 0)::numeric    AS other_income,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Other Expenses'), 0)::numeric  AS other_expenses,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Income'), 0)::numeric          AS income,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Cost of Goods Sold'), 0)::numeric AS cogs,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Expenses'), 0)::numeric        AS expenses,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Other Income'), 0)::numeric    AS other_income,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Other Expenses'), 0)::numeric  AS other_expenses,
                 COALESCE(SUM(CASE
-                    WHEN category IN ('Income', 'Other Income')    THEN amount
-                    WHEN category IN ('Cost of Goods Sold', 'Expenses', 'Other Expenses') THEN -amount
+                    WHEN account_category IN ('Income', 'Other Income')    THEN amount
+                    WHEN account_category IN ('Cost of Goods Sold', 'Expenses', 'Other Expenses') THEN -amount
                     ELSE 0
                 END), 0)::numeric AS net_income
             FROM qbo_pnl_monthly
@@ -111,25 +111,25 @@ router.get('/pnl-summary', async (req: Request, res: Response) => {
 
         const accountDetails = await db.execute(sql`
             SELECT
-                account_name AS account,
-                category,
+                account,
+                account_category AS category,
                 COALESCE(SUM(amount), 0)::numeric AS total,
                 JSON_AGG(
                     JSON_BUILD_OBJECT('month', month, 'amount', ROUND(amount::numeric, 2))
                     ORDER BY month
                 ) AS monthly
             FROM qbo_pnl_monthly
-            GROUP BY account_name, category
-            ORDER BY category, total DESC
+            GROUP BY account, account_category
+            ORDER BY account_category, total DESC
         `);
 
         const grandTotals = await db.execute(sql`
             SELECT
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Income'), 0)::numeric          AS total_income,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Cost of Goods Sold'), 0)::numeric AS total_cogs,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Expenses'), 0)::numeric        AS total_expenses,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Other Income'), 0)::numeric    AS total_other_income,
-                COALESCE(SUM(amount) FILTER (WHERE category = 'Other Expenses'), 0)::numeric  AS total_other_expenses
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Income'), 0)::numeric          AS total_income,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Cost of Goods Sold'), 0)::numeric AS total_cogs,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Expenses'), 0)::numeric        AS total_expenses,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Other Income'), 0)::numeric    AS total_other_income,
+                COALESCE(SUM(amount) FILTER (WHERE account_category = 'Other Expenses'), 0)::numeric  AS total_other_expenses
             FROM qbo_pnl_monthly
         `);
 
@@ -182,20 +182,20 @@ router.get('/expenses-summary', async (req: Request, res: Response) => {
 
         const vendors = await db.execute(sql`
             SELECT
-                vendor_name,
-                COALESCE(SUM(total_amount), 0)::numeric                                                 AS total_all_time,
-                COALESCE(SUM(total_amount) FILTER (WHERE period_end >= ${trailing12CutOff}), 0)::numeric AS total_trailing_12mo
+                vendor,
+                COALESCE(SUM(total), 0)::numeric                                                 AS total_all_time,
+                COALESCE(SUM(total) FILTER (WHERE period_end >= ${trailing12CutOff}), 0)::numeric AS total_trailing_12mo
             FROM qbo_expenses_by_vendor
-            GROUP BY vendor_name
+            GROUP BY vendor
             ORDER BY total_all_time DESC
             LIMIT 50
         `);
 
         const totals = await db.execute(sql`
             SELECT
-                COALESCE(SUM(total_amount), 0)::numeric                                                 AS total_all_time,
-                COALESCE(SUM(total_amount) FILTER (WHERE period_end >= ${trailing12CutOff}), 0)::numeric AS total_trailing_12mo,
-                COUNT(DISTINCT vendor_name)::int                                                         AS vendor_count
+                COALESCE(SUM(total), 0)::numeric                                                 AS total_all_time,
+                COALESCE(SUM(total) FILTER (WHERE period_end >= ${trailing12CutOff}), 0)::numeric AS total_trailing_12mo,
+                COUNT(DISTINCT vendor)::int                                                       AS vendor_count
             FROM qbo_expenses_by_vendor
         `);
 
@@ -205,7 +205,7 @@ router.get('/expenses-summary', async (req: Request, res: Response) => {
             totalAllTime: Math.round(Number(t.total_all_time) || 0),
             totalTrailing12mo: Math.round(Number(t.total_trailing_12mo) || 0),
             topVendors: (vendors.rows as any[]).map(r => ({
-                vendor: r.vendor_name ?? '',
+                vendor: r.vendor ?? '',
                 totalAllTime: Math.round(Number(r.total_all_time) || 0),
                 totalTrailing12mo: Math.round(Number(r.total_trailing_12mo) || 0),
             })),
@@ -291,8 +291,8 @@ router.get('/estimate-conversion', async (req: Request, res: Response) => {
                 COUNT(*) FILTER (WHERE status = 'Accepted')::int                   AS accepted_count,
                 COUNT(*) FILTER (WHERE status = 'Invoiced')::int                   AS invoiced_count,
                 COUNT(*) FILTER (WHERE status NOT IN ('Accepted', 'Invoiced'))::int AS pending_count,
-                COALESCE(SUM(total_amount), 0)::numeric                            AS total_estimate_value,
-                COALESCE(SUM(total_amount) FILTER (WHERE status = 'Invoiced'), 0)::numeric AS total_invoiced_value
+                COALESCE(SUM(amount), 0)::numeric                            AS total_estimate_value,
+                COALESCE(SUM(amount) FILTER (WHERE status = 'Invoiced'), 0)::numeric AS total_invoiced_value
             FROM qbo_estimates
         `);
 
@@ -300,7 +300,7 @@ router.get('/estimate-conversion', async (req: Request, res: Response) => {
             SELECT
                 TO_CHAR(estimate_date, 'YYYY-MM') AS month,
                 COUNT(*)::int                     AS count,
-                COALESCE(SUM(total_amount), 0)::numeric AS total_value,
+                COALESCE(SUM(amount), 0)::numeric AS total_value,
                 COUNT(*) FILTER (WHERE status = 'Accepted')::int AS accepted_count
             FROM qbo_estimates
             GROUP BY 1
@@ -339,20 +339,20 @@ router.get('/balance-sheet', async (req: Request, res: Response) => {
     try {
         const items = await db.execute(sql`
             SELECT
-                account_name  AS account,
-                category,
-                subcategory,
-                COALESCE(SUM(amount), 0)::numeric AS total
+                account,
+                account_category  AS category,
+                account_subcategory AS subcategory,
+                COALESCE(SUM(total), 0)::numeric AS total
             FROM qbo_balance_sheet
-            GROUP BY account_name, category, subcategory
+            GROUP BY account, account_category, account_subcategory
             ORDER BY
-                CASE category
+                CASE account_category
                     WHEN 'Assets'      THEN 1
                     WHEN 'Liabilities' THEN 2
                     WHEN 'Equity'      THEN 3
                     ELSE 4
                 END,
-                subcategory NULLS LAST,
+                account_subcategory NULLS LAST,
                 total DESC
         `);
 

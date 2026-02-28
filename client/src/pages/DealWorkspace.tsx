@@ -86,7 +86,7 @@ export function DealWorkspace() {
                         <RefreshCw size={13} />
                         Regenerate Shells
                     </button>
-                    {saveState === 'saved' && (
+                    {saveState === 'saved' ? (
                         <Link
                             to={`/dashboard/proposals/${formId}`}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
@@ -94,6 +94,19 @@ export function DealWorkspace() {
                             <FileText size={13} />
                             Create Proposal
                         </Link>
+                    ) : (
+                        <div className="relative group">
+                            <button
+                                disabled
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-400 rounded-lg cursor-not-allowed opacity-60"
+                            >
+                                <FileText size={13} />
+                                Create Proposal
+                            </button>
+                            <div className="absolute right-0 top-full mt-1.5 bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                Save your quote first to create a proposal
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
