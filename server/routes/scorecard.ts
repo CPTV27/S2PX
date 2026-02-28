@@ -267,10 +267,10 @@ router.get('/pipeline', async (req: Request, res: Response) => {
                 FROM scope_areas WHERE scoping_form_id = sf.id
             ) sa_agg ON true
             WHERE sf.status = 'won' AND sf.created_at >= ${cutoff}
-            GROUP BY tier
-            ORDER BY CASE tier
-                WHEN 'Minnow' THEN 1
-                WHEN 'Dolphin' THEN 2
+            GROUP BY 1
+            ORDER BY CASE
+                WHEN COALESCE(sa_agg.total_sqft, 0) < 10000 THEN 1
+                WHEN COALESCE(sa_agg.total_sqft, 0) < 50000 THEN 2
                 ELSE 3
             END
         `);
@@ -487,7 +487,7 @@ router.get('/profitability', async (req: Request, res: Response) => {
             ) sa_agg ON true
             WHERE sf.status = 'won' AND q.totals->>'grossMarginPercent' IS NOT NULL
                 AND sf.created_at >= ${cutoff}
-            GROUP BY tier
+            GROUP BY 1
         `);
 
         // Cost per SF by tier
@@ -515,7 +515,7 @@ router.get('/profitability', async (req: Request, res: Response) => {
                 FROM scope_areas WHERE scoping_form_id = sf.id
             ) sa_agg ON true
             WHERE sf.status = 'won' AND sf.created_at >= ${cutoff}
-            GROUP BY tier
+            GROUP BY 1
         `);
 
         // Travel cost breakdown from field capture data
