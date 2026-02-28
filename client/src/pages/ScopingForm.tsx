@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { FormProvider } from 'react-hook-form';
-import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, Banknote, FileText, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, CheckCircle2, AlertCircle, Banknote, FileText, ChevronRight, ArrowRight, ClipboardList, DollarSign, Send } from 'lucide-react';
 import { useScopingForm, type SaveStatus } from '@/hooks/useScopingForm';
 import { SectionA } from '@/components/scoping/SectionA';
 import { SectionB } from '@/components/scoping/SectionB';
@@ -110,23 +110,57 @@ export function ScopingForm() {
                         )}
 
                         {serverForm && (
-                            <>
-                                <div className="text-xs text-slate-400">
-                                    Status: <span className="font-medium text-slate-600 capitalize">{serverForm.status}</span>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/dashboard/deals/${serverForm.id}`)}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
-                                >
-                                    <Banknote size={16} />
-                                    Price this Deal
-                                    <ChevronRight size={14} />
-                                </button>
-                            </>
+                            <div className="text-xs text-slate-400">
+                                Status: <span className="font-medium text-slate-600 capitalize">{serverForm.status}</span>
+                            </div>
                         )}
                     </div>
                 </div>
+
+                {/* ── Workflow Banner — NEXT STEPS ── */}
+                {!isNew && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-2xl p-5">
+                        {/* Step indicators */}
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+                                <ClipboardList size={12} />
+                                <span>1. Scope</span>
+                            </div>
+                            <ArrowRight size={14} className="text-slate-300" />
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                <DollarSign size={12} />
+                                <span>2. Price</span>
+                            </div>
+                            <ArrowRight size={14} className="text-slate-300" />
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                <FileText size={12} />
+                                <span>3. Proposal</span>
+                            </div>
+                            <ArrowRight size={14} className="text-slate-300" />
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">
+                                <Send size={12} />
+                                <span>4. Send</span>
+                            </div>
+                        </div>
+
+                        {/* CTA */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-semibold text-slate-800">Ready to price this deal?</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Click below to generate line items and build a quote from your scoping data.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/dashboard/deals/${formId}`)}
+                                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-200 shrink-0 ml-4"
+                            >
+                                <Banknote size={18} />
+                                Price this Deal
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Form Sections */}
                 <div className="space-y-3">
@@ -150,7 +184,7 @@ export function ScopingForm() {
                 </div>
 
                 {/* Sticky action bar at bottom */}
-                {serverForm && (
+                {!isNew && (
                     <div className="sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-t border-slate-200 flex items-center justify-between">
                         <div className="text-xs text-slate-400">
                             <SaveIndicator status={saveStatus} />
@@ -158,7 +192,7 @@ export function ScopingForm() {
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => navigate(`/dashboard/deals/${serverForm.id}`)}
+                                onClick={() => navigate(`/dashboard/deals/${formId}`)}
                                 className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors"
                             >
                                 <Banknote size={16} />
