@@ -25,6 +25,7 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
             testMatch: [
                 'navigation.spec.ts',
+                'deal-lifecycle.spec.ts',
             ],
         },
 
