@@ -40,8 +40,8 @@ export function DealWorkspace() {
         return (
             <div className="max-w-2xl mx-auto mt-16 text-center">
                 <p className="text-red-500 text-sm mb-4">{error || 'Deal not found'}</p>
-                <button onClick={() => navigate('/dashboard/scoping')} className="text-sm text-blue-600 hover:underline">
-                    Back to Scoping
+                <button onClick={() => navigate('/dashboard/pipeline')} className="text-sm text-blue-600 hover:underline">
+                    Back to Pipeline
                 </button>
             </div>
         );
@@ -53,11 +53,11 @@ export function DealWorkspace() {
             <div className="flex items-start justify-between mb-6">
                 <div>
                     <button
-                        onClick={() => navigate('/dashboard/scoping')}
+                        onClick={() => navigate('/dashboard/pipeline')}
                         className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition-colors mb-2"
                     >
                         <ArrowLeft size={14} />
-                        Back to Scoping
+                        Back to Pipeline
                     </button>
                     <div className="flex items-center gap-3 mb-1">
                         {form.upid && (

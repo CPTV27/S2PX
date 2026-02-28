@@ -45,6 +45,22 @@ router.post('/', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/quotes/by-form/:formId — Get quotes for a scoping form
+// ⚠ Must be registered BEFORE /:id so Express doesn't match "by-form" as an :id param
+router.get('/by-form/:formId', async (req: Request, res: Response) => {
+    try {
+        const formId = parseInt(req.params.formId, 10);
+        const results = await db.select().from(quotes)
+            .where(eq(quotes.scopingFormId, formId))
+            .orderBy(quotes.createdAt);
+
+        res.json(results);
+    } catch (err) {
+        console.error('Error fetching quotes by form:', err);
+        res.status(500).json({ message: 'Failed to fetch quotes' });
+    }
+});
+
 // GET /api/quotes/:id — Get a quote by ID
 router.get('/:id', async (req: Request, res: Response) => {
     try {
@@ -59,21 +75,6 @@ router.get('/:id', async (req: Request, res: Response) => {
     } catch (err) {
         console.error('Error fetching quote:', err);
         res.status(500).json({ message: 'Failed to fetch quote' });
-    }
-});
-
-// GET /api/quotes/by-form/:formId — Get quotes for a scoping form
-router.get('/by-form/:formId', async (req: Request, res: Response) => {
-    try {
-        const formId = parseInt(req.params.formId, 10);
-        const results = await db.select().from(quotes)
-            .where(eq(quotes.scopingFormId, formId))
-            .orderBy(quotes.createdAt);
-
-        res.json(results);
-    } catch (err) {
-        console.error('Error fetching quotes by form:', err);
-        res.status(500).json({ message: 'Failed to fetch quotes' });
     }
 });
 

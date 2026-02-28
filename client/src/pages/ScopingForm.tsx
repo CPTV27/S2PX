@@ -101,7 +101,7 @@ export function ScopingForm() {
                     <div className="flex items-center gap-4">
                         <button
                             type="button"
-                            onClick={() => navigate('/dashboard/scoping')}
+                            onClick={() => navigate('/dashboard/pipeline')}
                             className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
                         >
                             <ArrowLeft size={18} />
