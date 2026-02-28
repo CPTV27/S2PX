@@ -268,9 +268,9 @@ router.get('/pipeline', async (req: Request, res: Response) => {
             ) sa_agg ON true
             WHERE sf.status = 'won' AND sf.created_at >= ${cutoff}
             GROUP BY tier
-            ORDER BY CASE
-                WHEN COALESCE(sa_agg.total_sqft, 0) < 10000 THEN 1
-                WHEN COALESCE(sa_agg.total_sqft, 0) < 50000 THEN 2
+            ORDER BY CASE tier
+                WHEN 'Minnow' THEN 1
+                WHEN 'Dolphin' THEN 2
                 ELSE 3
             END
         `);
@@ -447,7 +447,7 @@ router.get('/profitability', async (req: Request, res: Response) => {
                     WHEN (q.totals->>'grossMarginPercent')::numeric < 50 THEN '45-50%'
                     WHEN (q.totals->>'grossMarginPercent')::numeric < 55 THEN '50-55%'
                     ELSE '55%+'
-                END as range,
+                END as margin_range,
                 COUNT(*)::int as count
             FROM quotes q
             JOIN scoping_forms sf ON sf.id = q.scoping_form_id
@@ -455,8 +455,8 @@ router.get('/profitability', async (req: Request, res: Response) => {
                 AND sf.created_at >= ${cutoff}
                 AND q.id = (SELECT q2.id FROM quotes q2 WHERE q2.scoping_form_id = sf.id
                             ORDER BY q2.version DESC NULLS LAST, q2.created_at DESC LIMIT 1)
-            GROUP BY range
-            ORDER BY CASE range
+            GROUP BY margin_range
+            ORDER BY CASE margin_range
                 WHEN '<40%' THEN 1 WHEN '40-45%' THEN 2 WHEN '45-50%' THEN 3
                 WHEN '50-55%' THEN 4 ELSE 5 END
         `);
@@ -555,9 +555,9 @@ router.get('/profitability', async (req: Request, res: Response) => {
 
         res.json({
             marginDistribution: (margins.rows as any[]).map(r => ({
-                range: r.range,
+                range: r.margin_range,
                 count: Number(r.count),
-                color: marginColors[r.range] || '#94A3B8',
+                color: marginColors[r.margin_range] || '#94A3B8',
             })),
             avgMarginByTier: (byTier.rows as any[]).map(r => ({
                 tier: r.tier,
