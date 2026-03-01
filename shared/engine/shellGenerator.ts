@@ -203,7 +203,7 @@ function generateProjectShells(form: ScopingFormInput, areaShells: LineItemShell
         areaName: 'Project-Level',
         category: 'travel',
         discipline: 'travel',
-        description: `Travel — ${form.dispatchLocation} → ${form.oneWayMiles} mi — ${form.travelMode}${rateSuffix}`,
+        description: `Travel — ${form.dispatchLocation} to ${form.oneWayMiles} mi — ${form.travelMode}${rateSuffix}`,
         buildingType: '',
         upteamCost: null,
         clientPrice: null,
