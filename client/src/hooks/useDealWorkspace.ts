@@ -57,7 +57,12 @@ export function useDealWorkspace(formId: number | undefined) {
                 let lineItems: LineItemShell[];
                 if (existingQuote?.lineItems) {
                     // Use saved line items (preserves CEO-entered prices)
-                    lineItems = existingQuote.lineItems as LineItemShell[];
+                    // Sanitize JSONB: missing fields come back as undefined, normalize to null
+                    lineItems = (existingQuote.lineItems as LineItemShell[]).map(item => ({
+                        ...item,
+                        upteamCost: item.upteamCost ?? null,
+                        clientPrice: item.clientPrice ?? null,
+                    }));
                 } else {
                     // Generate fresh shells from scoping form
                     lineItems = generateShellsFromForm(form);

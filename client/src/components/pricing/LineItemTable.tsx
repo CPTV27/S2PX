@@ -17,12 +17,12 @@ function CurrencyInput({
     className?: string;
 }) {
     const [editing, setEditing] = useState(false);
-    const [text, setText] = useState(value !== null ? value.toString() : '');
+    const [text, setText] = useState(value != null ? value.toString() : '');
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!editing) {
-            setText(value !== null ? value.toString() : '');
+            setText(value != null ? value.toString() : '');
         }
     }, [value, editing]);
 
@@ -46,7 +46,7 @@ function CurrencyInput({
             ref={inputRef}
             type="text"
             inputMode="decimal"
-            value={editing ? text : (value !== null ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '')}
+            value={editing ? text : (value != null ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '')}
             placeholder="—"
             onChange={e => setText(e.target.value.replace(/[^0-9.]/g, ''))}
             onFocus={handleFocus}
@@ -151,7 +151,7 @@ function GroupSection({ group, onUpdate }: { group: AreaGroup; onUpdate: LineIte
                 <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                     <td className="py-2.5 px-3">
                         <div className="text-sm text-slate-800">{item.description}</div>
-                        {item.squareFeet && (
+                        {typeof item.squareFeet === 'number' && item.squareFeet > 0 && (
                             <div className="text-xs text-slate-400 mt-0.5">
                                 {item.squareFeet.toLocaleString()} SF
                                 {item.lod && ` / LoD ${item.lod}`}
