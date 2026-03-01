@@ -215,19 +215,21 @@ export function mapToProposalData(input: MapperInput): ProposalData {
     // All disciplines across all areas
     const allDisciplines = [...new Set(areas.flatMap(a => a.disciplines))];
 
-    // Default template if none provided
-    const tpl: TemplateData = template || {
-        aboutScan2plan: null,
-        whyScan2plan: null,
-        capabilities: null,
-        difference: null,
-        bimStandardsIntro: null,
-        paymentTermsDefault: null,
-        sfAuditClause: null,
+    // Default template with boilerplate from existing proposals.
+    // Users can customize these via /dashboard/settings/proposal-template.
+    const defaultTemplate: TemplateData = {
+        aboutScan2plan: 'We began in 2018 with a simple goal of helping firms focus on design. We\'re an on-demand LiDAR to BIM/CAD team that can model any building in weeks. This can be done within any scope, budget or schedule. We\'ve scanned over 1,000 buildings (~10M sqft).\n\nWe use LiDAR scanners for 3D mapping with extreme accuracy. We deliver professionally drafted 3D BIM and 2D CAD for comprehensive existing conditions documentation. Our Point Cloud datasets serve as a verifiable single-source-of-truth for coordination and risk-mitigation across projects.',
+        whyScan2plan: '- Experienced, dedicated team of field techs, drafters (AutoCAD and Revit) and licensed engineers.\n- We take the time to scope each project to suit your priorities.\n- We use the finest precision tools to capture a point cloud with extreme accuracy.\n- Drafted to Scan2Plan\'s rigorous design standards - your design phase begins upon delivery.\n- We take a process driven approach with extensive quality control and team review.\n- Exceptional support from real professionals.\n- Scan2Plan has national and international coverage.\n- We work on a wide range of projects from single family homes to large-scale commercial, industrial and infrastructure.',
+        capabilities: 'Scan2Plan is for: Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.\n\n- Scan-to-BIM: Architectural & Structural Existing Conditions Documentation. Deliverables include Revit Model, Colorized Point Cloud, and 360 Photo documentation. Standard LoD options: 200, 300, 350.\n- BIM to CAD Conversion: Pristine CAD drawings converted from Revit Model.\n- MEPF Modeling: Any exposed Mechanical, Electrical, Plumbing and Fire Safety elements documented in BIM or CAD.\n- Landscape: Landscape, grounds, and urban spaces documented in BIM or CAD. Georeferencing and forestry optional.\n- Matterport 3D Tour: High resolution 360 photo documentation and virtual tour walkthrough.\n- Paper to BIM or CAD: Legacy 2D paper drawings converted to functional BIM or CAD documentation.\n- Model Only / Point Cloud Only: You work with our point cloud or we\'ll model from yours. We support Revit, AutoCAD, Sketchup, Rhino, Vectorworks, and others.',
+        difference: 'What to look for in a Scan-to-BIM partner.\n\nIn the evolving landscape of scanning and modeling, it\'s important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision. Here\'s what sets us apart:\n\n- High-Quality Data for Superior Results: We capture all our point cloud data sets in full color, with significant overlap and redundancy. This maximizes point cloud density, leading to more accurate and detailed models.\n- Precision with Terrestrial LiDAR: We use high-end terrestrial LiDAR for unparalleled accuracy. Using the Trimble X7 scanner for every project, we guarantee consistent millimeter accuracy with validation from 0" to 1/8".\n- Setting High Standards in BIM & CAD: We offer the highest standard of Levels of Development (LoD) 200, 300, and 350, for schematic and construction-ready documentation.\n- The Human Touch in Modeling and Drafting: We take pride in our 100% manual approach to modeling and drafting. Our expert team meticulously translates data into detailed models and drawings.\n- Rigorous Quality Control for Trusted Accuracy: Our dedicated QC team conducts multiple checks on every deliverable, ensuring they meet our high standards.\n- Customized to Your Standards: We adapt to your specific needs, integrating your Revit Templates or CAD Standards for a seamless transition from delivery to design.\n- Dedicated Support & Revisions: We offer comprehensive support, including demonstrations and revisions until you\'re completely satisfied.\n- Ready When You Are: Our scanning techs are typically available to be on-site within a week of a signed contract.',
+        bimStandardsIntro: 'All BIM models are created in accordance with industry-standard Level of Development (LOD) specifications as defined by the BIM Forum. The table below outlines each LOD level and its applicability to your project.',
+        paymentTermsDefault: '50% of the estimated cost will be due at the time of the client engaging the Services. The first invoice will be for half of the estimated cost. The second invoice will be for the outstanding balance based on the total square footage scanned and modeled.',
+        sfAuditClause: 'The price estimate is based on a square footage estimate of {{estimatedSqft}} SF. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the BOMA \'Gross Area Standard Method\' and will send a square footage audit approximately one week after scan completion.',
         contactEmail: 'admin@scan2plan.io',
         contactPhone: '(518) 362-2403',
-        footerText: null,
+        footerText: 'Scan2Plan -- 3D Scanning & BIM Services -- scan2plan.io',
     };
+    const tpl: TemplateData = template || defaultTemplate;
 
     return {
         upid: form.upid,

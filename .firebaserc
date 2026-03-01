@@ -4,11 +4,8 @@
   },
   "targets": {
     "s2px-production": {
-      "hosting": {
-        "s2px": [
-          "s2px"
-        ]
-      }
+      "hosting": {}
     }
-  }
+  },
+  "etags": {}
 }

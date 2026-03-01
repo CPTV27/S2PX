@@ -1,6 +1,6 @@
 {
     "hosting": {
-        "target": "s2px",
+        "site": "s2px",
         "public": "dist",
         "ignore": [
             "firebase.json",
@@ -12,7 +12,7 @@
                 "source": "/api/**",
                 "run": {
                     "serviceId": "s2px-api",
-                    "region": "us-central1"
+                    "region": "us-east1"
                 }
             },
             {

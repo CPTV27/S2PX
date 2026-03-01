@@ -171,9 +171,9 @@ function ScopingSummary({ form }: { form: import('@/services/api').ScopingFormDa
             {form.projectAddress && (
                 <PropertyMap
                     address={form.projectAddress}
-                    lat={form.projectLat as any}
-                    lng={form.projectLng as any}
-                    footprintSqft={form.buildingFootprintSqft as any}
+                    lat={form.projectLat != null ? Number(form.projectLat) : undefined}
+                    lng={form.projectLng != null ? Number(form.projectLng) : undefined}
+                    footprintSqft={form.buildingFootprintSqft != null ? Number(form.buildingFootprintSqft) : undefined}
                     scopingFormId={form.id}
                     height={240}
                 />
