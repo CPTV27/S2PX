@@ -28,6 +28,8 @@ function baseArea(overrides?: Record<string, unknown>) {
         mepf: null,
         act: null,
         belowFloor: null,
+        site: null,
+        matterport: null,
         customLineItems: null,
         ...overrides,
     };
@@ -84,7 +86,7 @@ describe('Shell Generator — Edge Cases', () => {
         expect(shells.length).toBeGreaterThanOrEqual(2); // at least arch + travel
     });
 
-    it('area with all add-ons enabled generates 6 lines', () => {
+    it('area with all add-ons enabled generates 8 lines', () => {
         const form = baseForm({
             areas: [baseArea({
                 cadDeliverable: 'Full',
@@ -92,13 +94,15 @@ describe('Shell Generator — Edge Cases', () => {
                 mepf: { enabled: true, sqft: 25000 },
                 act: { enabled: true, sqft: 25000 },
                 belowFloor: { enabled: true, sqft: 25000 },
+                site: { enabled: true, sqft: 25000 },
+                matterport: { enabled: true, sqft: 25000 },
             })],
         });
         const shells = generateLineItemShells(form);
 
-        // arch + structural + mepf + cad + act + belowFloor = 6 per-area + 1 travel = 7
+        // arch + structural + mepf + cad + act + belowFloor + site + matterport = 8 per-area + 1 travel = 9
         const areaLines = shells.filter(s => s.areaId !== null);
-        expect(areaLines).toHaveLength(6);
+        expect(areaLines).toHaveLength(8);
 
         const disciplines = areaLines.map(s => s.discipline);
         expect(disciplines).toContain('architecture');
@@ -107,6 +111,8 @@ describe('Shell Generator — Edge Cases', () => {
         expect(disciplines).toContain('cad');
         expect(disciplines).toContain('act');
         expect(disciplines).toContain('below-floor');
+        expect(disciplines).toContain('site');
+        expect(disciplines).toContain('matterport');
     });
 
     it('custom line items with amount: 0 still generate', () => {
@@ -201,7 +207,7 @@ describe('Shell Generator — Edge Cases', () => {
         expect(srLine!.description).toContain('Half Day');
     });
 
-    it('all project-level toggles on + full area = 13 lines total', () => {
+    it('all project-level toggles on + full area = 14 lines total', () => {
         const form = baseForm({
             georeferencing: true,
             expedited: true,
@@ -215,14 +221,16 @@ describe('Shell Generator — Edge Cases', () => {
                 mepf: { enabled: true },
                 act: { enabled: true },
                 belowFloor: { enabled: true },
+                site: { enabled: true },
+                matterport: { enabled: true },
                 customLineItems: [{ description: 'Special survey', amount: 500 }],
             })],
         });
         const shells = generateLineItemShells(form);
 
-        // Per-area: arch(1) + structural(2) + mepf(3) + cad(4) + act(5) + belowFloor(6) = 6
-        // Project: travel(7) + geo(8) + expedited(9) + landscape(10) + scan-reg(11) + custom(12) = 6
-        // Total: 12
-        expect(shells).toHaveLength(12);
+        // Per-area: arch(1) + structural(2) + mepf(3) + cad(4) + act(5) + belowFloor(6) + site(7) + matterport(8) = 8
+        // Project: travel(9) + geo(10) + expedited(11) + landscape(12) + scan-reg(13) + custom(14) = 6
+        // Total: 14
+        expect(shells).toHaveLength(14);
     });
 });

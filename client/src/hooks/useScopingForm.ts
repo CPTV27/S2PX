@@ -28,6 +28,8 @@ const scopeAreaSchema = z.object({
     cadDeliverable: z.string().min(1, 'Required'),
     act: z.object({ enabled: z.boolean(), sqft: z.coerce.number().optional() }).default({ enabled: false }),
     belowFloor: z.object({ enabled: z.boolean(), sqft: z.coerce.number().optional() }).default({ enabled: false }),
+    site: z.object({ enabled: z.boolean(), sqft: z.coerce.number().optional() }).default({ enabled: false }),
+    matterport: z.object({ enabled: z.boolean(), sqft: z.coerce.number().optional() }).default({ enabled: false }),
     customLineItems: z.array(z.object({ description: z.string(), amount: z.coerce.number() })).optional().default([]),
     sortOrder: z.number().optional(),
 });
@@ -116,6 +118,8 @@ export const emptyArea: z.infer<typeof scopeAreaSchema> = {
     cadDeliverable: '',
     act: { enabled: false },
     belowFloor: { enabled: false },
+    site: { enabled: false },
+    matterport: { enabled: false },
     customLineItems: [],
 };
 

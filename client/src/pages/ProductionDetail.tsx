@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Loader2, Building2, MapPin, ChevronRight,
     CheckCircle, AlertCircle, Lock, Pencil, Eye,
-    Radio, ClipboardList,
+    Radio, ClipboardList, Link2,
 } from 'lucide-react';
 import {
     fetchProductionProject,
@@ -14,6 +14,7 @@ import { STAGE_CONFIGS, getStageConfig, getNextStage } from '@shared/types/produ
 import type { ProductionStage } from '@shared/schema/constants';
 import { StageTransition } from '@/components/production/StageTransition';
 import { ProjectAssets } from '@/components/production/ProjectAssets';
+import { SendScantechLinkModal } from '@/components/production/SendScantechLinkModal';
 import { PropertyMap } from '@/components/PropertyMap';
 import { cn } from '@/lib/utils';
 
@@ -161,6 +162,7 @@ export function ProductionDetail() {
     const [editValues, setEditValues] = useState<Record<string, unknown>>({});
     const [saving, setSaving] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
+    const [showSendLink, setShowSendLink] = useState(false);
     const [activeTab, setActiveTab] = useState<'stage' | 'field'>('stage');
 
     const loadProject = useCallback(async () => {
@@ -264,6 +266,13 @@ export function ProductionDetail() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowSendLink(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                        <Link2 size={13} />
+                        Send Field Link
+                    </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
@@ -419,6 +428,16 @@ export function ProductionDetail() {
                     currentStage={project.currentStage as ProductionStage}
                     onClose={() => setShowTransition(false)}
                     onAdvanced={handleAdvanced}
+                />
+            )}
+
+            {/* Send Scantech Link Modal */}
+            {showSendLink && projectId && (
+                <SendScantechLinkModal
+                    projectId={projectId}
+                    upid={project.upid}
+                    projectName={project.projectName || 'Untitled Project'}
+                    onClose={() => setShowSendLink(false)}
                 />
             )}
         </div>

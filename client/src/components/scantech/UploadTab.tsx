@@ -8,12 +8,11 @@ import {
     X, File, Image, Video, HardDrive, Pause, Play, RotateCcw,
 } from 'lucide-react';
 import { useScantechContext } from './ScantechLayout';
-import {
-    getFieldUploadSignedUrl,
-    confirmFieldUpload,
-    type FileCategory,
-    type CaptureMethod,
-    type FieldUploadRecord,
+import { useScantechApi } from './ScantechApiContext';
+import type {
+    FileCategory,
+    CaptureMethod,
+    FieldUploadRecord,
 } from '@/services/api';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +67,7 @@ const ACCEPTED_FILES =
 
 export function UploadTab() {
     const { project, reloadProject, online } = useScantechContext();
+    const api = useScantechApi();
     const [queue, setQueue] = useState<UploadItem[]>([]);
     const cameraRef = useRef<HTMLInputElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -102,7 +102,7 @@ export function UploadTab() {
 
         try {
             // Step 1: Get signed URL
-            const { signedUrl, gcsPath, bucket } = await getFieldUploadSignedUrl(project.id, {
+            const { signedUrl, gcsPath, bucket } = await api.getUploadSignedUrl({
                 filename: item.file.name,
                 contentType: item.file.type || 'application/octet-stream',
                 sizeBytes: item.file.size,
@@ -143,7 +143,7 @@ export function UploadTab() {
 
             // Step 3: Confirm upload
             updateItem(item.id, { status: 'confirming', progress: 100 });
-            await confirmFieldUpload(project.id, {
+            await api.confirmUpload({
                 filename: item.file.name,
                 gcsPath,
                 bucket,

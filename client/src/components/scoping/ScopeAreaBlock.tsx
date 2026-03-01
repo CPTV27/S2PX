@@ -127,11 +127,13 @@ export function ScopeAreaBlock({ index, onRemove, onClone }: ScopeAreaBlockProps
             )}
 
             {/* Row 3: Discipline toggles */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <ToggleSqft name={`${prefix}.structural`} label="Structural" />
                 <ToggleSqft name={`${prefix}.mepf`} label="MEPF" />
                 <ToggleSqft name={`${prefix}.act`} label="ACT (Above Ceiling)" />
                 <ToggleSqft name={`${prefix}.belowFloor`} label="Below Floor" />
+                <ToggleSqft name={`${prefix}.site`} label="Site / Civil" />
+                <ToggleSqft name={`${prefix}.matterport`} label="Matterport" />
             </div>
         </div>
     );

@@ -9,6 +9,7 @@ import {
     ArrowLeft, Wifi, WifiOff, Loader2,
 } from 'lucide-react';
 import { fetchScantechProject, type ScantechProjectDetail } from '@/services/api';
+import { AuthenticatedScantechApiProvider } from './ScantechApiContext';
 import { cn } from '@/lib/utils';
 
 // ── Bottom Nav Definition ──
@@ -166,7 +167,11 @@ export function ScantechLayout() {
             {/* ── Main Content Area (scrollable) ── */}
             <main className="flex-1 overflow-y-auto pb-20">
                 <div className="max-w-2xl mx-auto px-4 py-4">
-                    <Outlet context={{ project, reloadProject, online }} />
+                    <ScantechCtx.Provider value={{ project, reloadProject, online }}>
+                        <AuthenticatedScantechApiProvider projectId={project.id}>
+                            <Outlet />
+                        </AuthenticatedScantechApiProvider>
+                    </ScantechCtx.Provider>
                 </div>
             </main>
 
@@ -195,9 +200,11 @@ export function ScantechLayout() {
     );
 }
 
-// ── Typed hook for child tabs to access layout context ──
+// ── Scantech Context ──
+// Dedicated React context so both ScantechLayout (authenticated) and
+// ScantechPublicLayout (public) can provide the same context to tab components.
 
-import { useOutletContext } from 'react-router-dom';
+import { createContext, useContext } from 'react';
 
 export interface ScantechContext {
     project: ScantechProjectDetail;
@@ -205,6 +212,10 @@ export interface ScantechContext {
     online: boolean;
 }
 
+export const ScantechCtx = createContext<ScantechContext | null>(null);
+
 export function useScantechContext(): ScantechContext {
-    return useOutletContext<ScantechContext>();
+    const ctx = useContext(ScantechCtx);
+    if (!ctx) throw new Error('useScantechContext must be used within a Scantech layout');
+    return ctx;
 }

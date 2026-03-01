@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Database, Cloud, Key, CheckCircle, XCircle, RefreshCw, HardDrive, Flame, FileText, ChevronRight } from 'lucide-react';
+import { Database, Cloud, Key, CheckCircle, XCircle, RefreshCw, HardDrive, Flame, FileText, ChevronRight, Users, Loader2, DollarSign } from 'lucide-react';
 import { checkHealth } from '@/services/api';
 import { checkFirestoreConnection } from '@/services/firestore';
 import { checkStorageConnection, BUCKETS } from '@/services/storage';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+
+const UserManagement = lazy(() =>
+    import('@/components/UserManagement').then(m => ({ default: m.UserManagement }))
+);
 
 interface StatusItem {
     label: string;
@@ -18,6 +23,8 @@ interface StatusItem {
 
 export function Settings() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const showTeamManagement = user?.role === 'ceo' || user?.role === 'admin';
     const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
     const [firestoreStatus, setFirestoreStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
     const [storageStatus, setStorageStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
@@ -158,22 +165,65 @@ export function Settings() {
                     className="bg-white border border-s2p-border rounded-2xl p-8 lg:col-span-2"
                 >
                     <h3 className="text-lg font-semibold mb-4">Configuration</h3>
-                    <button
-                        onClick={() => navigate('/dashboard/settings/proposal-template')}
-                        className="w-full flex items-center justify-between p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover:bg-blue-100">
-                                <FileText size={18} />
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => navigate('/dashboard/settings/proposal-template')}
+                            className="w-full flex items-center justify-between p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover:bg-blue-100">
+                                    <FileText size={18} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-medium text-sm">Proposal Template</div>
+                                    <div className="text-xs text-s2p-muted">Edit boilerplate content for PDF proposals (About, Why, Capabilities, BIM Standards, etc.)</div>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <div className="font-medium text-sm">Proposal Template</div>
-                                <div className="text-xs text-s2p-muted">Edit boilerplate content for PDF proposals (About, Why, Capabilities, BIM Standards, etc.)</div>
-                            </div>
-                        </div>
-                        <ChevronRight size={16} className="text-s2p-muted group-hover:text-blue-500" />
-                    </button>
+                            <ChevronRight size={16} className="text-s2p-muted group-hover:text-blue-500" />
+                        </button>
+                        {showTeamManagement && (
+                            <button
+                                onClick={() => navigate('/dashboard/settings/pricing-variables')}
+                                className="w-full flex items-center justify-between p-4 bg-s2p-secondary/50 border border-s2p-border rounded-xl hover:bg-green-50 hover:border-green-200 transition-colors group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-green-50 text-green-600 group-hover:bg-green-100">
+                                        <DollarSign size={18} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-medium text-sm">Pricing Variables</div>
+                                        <div className="text-xs text-s2p-muted">Adjust base rates, margins, travel costs, risk premiums, and other pricing constants</div>
+                                    </div>
+                                </div>
+                                <ChevronRight size={16} className="text-s2p-muted group-hover:text-green-600" />
+                            </button>
+                        )}
+                    </div>
                 </motion.div>
+
+                {/* Team Members (CEO/Admin only) */}
+                {showTeamManagement && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08 }}
+                        className="bg-white border border-s2p-border rounded-2xl p-8 lg:col-span-2"
+                    >
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-500">
+                                <Users size={18} />
+                            </div>
+                            <h3 className="text-lg font-semibold">Team Members</h3>
+                        </div>
+                        <Suspense fallback={
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                            </div>
+                        }>
+                            <UserManagement />
+                        </Suspense>
+                    </motion.div>
+                )}
 
                 {/* About */}
                 <motion.div

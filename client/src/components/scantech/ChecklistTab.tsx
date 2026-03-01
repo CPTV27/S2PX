@@ -7,12 +7,11 @@ import {
     Camera, Check, X,
 } from 'lucide-react';
 import { useScantechContext } from './ScantechLayout';
-import {
-    fetchScantechChecklists,
-    submitChecklistResponse,
-    type ChecklistTemplate,
-    type ChecklistSubmission,
-    type ChecklistResponse,
+import { useScantechApi } from './ScantechApiContext';
+import type {
+    ChecklistTemplate,
+    ChecklistSubmission,
+    ChecklistResponse,
 } from '@/services/api';
 import { cn } from '@/lib/utils';
 
@@ -20,13 +19,14 @@ const AUTOSAVE_MS = 5000; // 5-second debounce
 
 export function ChecklistTab() {
     const { project, reloadProject, online } = useScantechContext();
+    const api = useScantechApi();
     const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
-                const data = await fetchScantechChecklists();
+                const data = await api.fetchChecklists();
                 setTemplates(data);
             } catch { /* handled in UI */ }
             finally { setLoading(false); }
@@ -57,6 +57,7 @@ export function ChecklistTab() {
                         projectId={project.id}
                         online={online}
                         onSaved={reloadProject}
+                        submitChecklist={api.submitChecklist}
                     />
                 );
             })}
@@ -77,12 +78,14 @@ function ChecklistCard({
     projectId,
     online,
     onSaved,
+    submitChecklist,
 }: {
     template: ChecklistTemplate;
     existing: ChecklistSubmission | null;
     projectId: number;
     online: boolean;
     onSaved: () => Promise<void>;
+    submitChecklist: (data: { checklistId: number; responses: ChecklistResponse[]; status: 'in_progress' | 'complete' | 'flagged' }) => Promise<ChecklistSubmission>;
 }) {
     const [expanded, setExpanded] = useState(false);
     const [responses, setResponses] = useState<Record<string, ChecklistResponse>>({});
@@ -115,7 +118,7 @@ function ChecklistCard({
         setSaving(true);
         try {
             const respArray = Object.values(responses);
-            await submitChecklistResponse(projectId, {
+            await submitChecklist({
                 checklistId: template.id,
                 responses: respArray,
                 status: 'in_progress',
@@ -127,7 +130,7 @@ function ChecklistCard({
         } finally {
             setSaving(false);
         }
-    }, [responses, projectId, template.id, online]);
+    }, [responses, template.id, online, submitChecklist]);
 
     // Debounced save trigger
     const triggerSave = useCallback(() => {
@@ -184,7 +187,7 @@ function ChecklistCard({
 
         setSaving(true);
         try {
-            await submitChecklistResponse(projectId, {
+            await submitChecklist({
                 checklistId: template.id,
                 responses: Object.values(responses),
                 status: 'complete',

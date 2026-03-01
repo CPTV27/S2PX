@@ -13,7 +13,8 @@ const { Client } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:wmh0PMUXgOrcGU9qvNFqZJX@localhost:5433/s2px';
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error('DATABASE_URL is required. Set it in .env or pass it as an environment variable.');
 const DOCS_ROOT = path.resolve(__dirname, '../../knowledge-base/docs');
 
 // ── Markdown stripping (same logic as server/lib/markdownUtils.ts) ──
@@ -100,7 +101,11 @@ const SECTIONS: SectionDef[] = [
 ];
 
 async function main() {
-    const client = new Client({ connectionString: DB_URL, ssl: false });
+    const isLocal = DB_URL.includes('localhost') || DB_URL.includes('127.0.0.1');
+    const client = new Client({
+        connectionString: DB_URL,
+        ssl: isLocal ? false : { rejectUnauthorized: false },
+    });
     await client.connect();
     console.log('Connected to Cloud SQL');
 

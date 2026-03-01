@@ -10,6 +10,7 @@ import {
 } from '@/services/api';
 import { generateLineItemShells, type ScopingFormInput } from '@shared/engine/shellGenerator';
 import { computeQuoteTotals } from '@shared/engine/quoteTotals';
+import { applyAutoCalcPrices } from '@shared/engine/autoCalc';
 import type { LineItemShell, QuoteTotals } from '@shared/types/lineItem';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -57,12 +58,8 @@ export function useDealWorkspace(formId: number | undefined) {
                 let lineItems: LineItemShell[];
                 if (existingQuote?.lineItems) {
                     // Use saved line items (preserves CEO-entered prices)
-                    // Sanitize JSONB: missing fields come back as undefined, normalize to null
-                    lineItems = (existingQuote.lineItems as LineItemShell[]).map(item => ({
-                        ...item,
-                        upteamCost: item.upteamCost ?? null,
-                        clientPrice: item.clientPrice ?? null,
-                    }));
+                    // Normalize legacy CPQ format (label/amount/rate/sqft) to current shell format
+                    lineItems = (existingQuote.lineItems as unknown as Record<string, unknown>[]).map(normalizeLineItem);
                 } else {
                     // Generate fresh shells from scoping form
                     lineItems = generateShellsFromForm(form);
@@ -93,12 +90,14 @@ export function useDealWorkspace(formId: number | undefined) {
         return () => { cancelled = true; };
     }, [formId]);
 
-    // Update a single line item's price
+    // Update a single line item's price, then auto-calc dependent items
     const updateLineItem = useCallback((itemId: string, field: 'upteamCost' | 'clientPrice', value: number | null) => {
         setState(prev => {
-            const updated = prev.lineItems.map(item =>
+            const manual = prev.lineItems.map(item =>
                 item.id === itemId ? { ...item, [field]: value } : item
             );
+            // Auto-compute expedited surcharge & below floor suggestions
+            const updated = applyAutoCalcPrices(manual, itemId);
             const totals = computeQuoteTotals(updated);
             return { ...prev, lineItems: updated, totals, saveState: 'idle' };
         });
@@ -205,8 +204,80 @@ function generateShellsFromForm(form: ScopingFormData): LineItemShell[] {
             cadDeliverable: a.cadDeliverable,
             act: a.act || null,
             belowFloor: a.belowFloor || null,
+            site: a.site || null,
+            matterport: a.matterport || null,
             customLineItems: a.customLineItems || null,
         })),
     };
     return generateLineItemShells(input);
+}
+
+/**
+ * Normalize a line item from either the legacy CPQ format or the current shell format.
+ *
+ * Legacy CPQ format (from Railway migration):
+ *   { id, label, amount, rate, sqft, category }
+ *   Categories: "modeling", "add-on", "summary", "travel", "cad"
+ *
+ * Current shell format:
+ *   { id, areaId, areaName, category, discipline, description, buildingType, squareFeet, upteamCost, clientPrice, ... }
+ *   Categories: "modeling" | "travel" | "addOn" | "custom"
+ */
+function normalizeLineItem(raw: Record<string, unknown>): LineItemShell {
+    // Detect legacy format: has "label" but no "description"
+    const isLegacy = 'label' in raw && !('description' in raw);
+
+    if (!isLegacy) {
+        // Current format — just sanitize nulls
+        const item = raw as unknown as LineItemShell;
+        return {
+            ...item,
+            upteamCost: item.upteamCost ?? null,
+            clientPrice: item.clientPrice ?? null,
+        };
+    }
+
+    // ── Legacy CPQ → LineItemShell mapping ──
+    const label = (raw.label as string) || '';
+    const amount = typeof raw.amount === 'number' ? raw.amount : null;
+    const sqft = typeof raw.sqft === 'number' ? raw.sqft : undefined;
+    const oldCategory = (raw.category as string) || '';
+
+    // Map legacy categories to current enum
+    const categoryMap: Record<string, LineItemShell['category']> = {
+        'modeling': 'modeling',
+        'travel': 'travel',
+        'add-on': 'addOn',
+        'cad': 'addOn',
+        'summary': 'custom',  // summary rows become custom (non-editable display)
+    };
+    const category = categoryMap[oldCategory] || 'custom';
+
+    // Infer discipline from label
+    let discipline: string | undefined;
+    const labelLower = label.toLowerCase();
+    if (labelLower.startsWith('architecture')) discipline = 'architecture';
+    else if (labelLower.startsWith('mepf')) discipline = 'mepf';
+    else if (labelLower.startsWith('structural')) discipline = 'structural';
+    else if (labelLower.startsWith('landscape')) discipline = 'landscape';
+    else if (labelLower.startsWith('cad') || oldCategory === 'cad') discipline = 'cad';
+    else if (labelLower.startsWith('travel') || oldCategory === 'travel') discipline = 'travel';
+
+    // Extract LoD from label if present (e.g., "LOD 350")
+    const lodMatch = label.match(/LOD\s*(\d+)/i);
+    const lod = lodMatch ? lodMatch[1] : undefined;
+
+    return {
+        id: (raw.id as string) || `legacy-${Math.random().toString(36).slice(2, 8)}`,
+        areaId: null,
+        areaName: oldCategory === 'travel' ? 'Project-Level' : 'Migrated',
+        category,
+        discipline,
+        description: label,
+        buildingType: '',
+        squareFeet: sqft,
+        lod,
+        upteamCost: null,  // Legacy format didn't have separate cost/price
+        clientPrice: amount,
+    };
 }

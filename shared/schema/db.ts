@@ -148,6 +148,8 @@ export const scopeAreas = pgTable('scope_areas', {
 
     structural: jsonb('structural').$type<{ enabled: boolean; sqft?: number }>(),
     mepf: jsonb('mepf').$type<{ enabled: boolean; sqft?: number }>(),
+    site: jsonb('site').$type<{ enabled: boolean; sqft?: number }>(),
+    matterport: jsonb('matterport').$type<{ enabled: boolean; sqft?: number }>(),
     cadDeliverable: text('cad_deliverable').notNull(), // No / Basic / A+S+Site / Full
     act: jsonb('act').$type<{ enabled: boolean; sqft?: number }>(),
     belowFloor: jsonb('below_floor').$type<{ enabled: boolean; sqft?: number }>(),
@@ -707,3 +709,52 @@ export const scanChecklistResponsesRelations = relations(scanChecklistResponses,
         references: [users.id],
     }),
 }));
+
+// ══════════════════════════════════════════════════════════════
+// ── Scantech Tokens (Phase 19) ──
+// Token-based shareable links for field technicians who don't have
+// Google accounts. Follows the same pattern as uploadShares.
+// ══════════════════════════════════════════════════════════════
+
+export const scantechTokens = pgTable('scantech_tokens', {
+    id: serial('id').primaryKey(),
+    productionProjectId: integer('production_project_id')
+        .notNull()
+        .references(() => productionProjects.id, { onDelete: 'cascade' }),
+    token: text('token').notNull().unique(),
+    techName: text('tech_name').notNull(),
+    techEmail: text('tech_email'),
+    techPhone: text('tech_phone'),
+    createdBy: integer('created_by').references(() => users.id),
+    expiresAt: timestamp('expires_at').notNull(),
+    isActive: boolean('is_active').default(true),
+    lastAccessedAt: timestamp('last_accessed_at'),
+    accessCount: integer('access_count').default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const scantechTokensRelations = relations(scantechTokens, ({ one }) => ({
+    productionProject: one(productionProjects, {
+        fields: [scantechTokens.productionProjectId],
+        references: [productionProjects.id],
+    }),
+    createdByUser: one(users, {
+        fields: [scantechTokens.createdBy],
+        references: [users.id],
+    }),
+}));
+
+// ══════════════════════════════════════════════════════════════
+// ── Pricing Configuration (DB-Driven Constants) ──
+// All pricing variables stored in the database so they can be
+// updated without redeploying. Single row, JSONB config.
+// ══════════════════════════════════════════════════════════════
+
+export const pricingConfig = pgTable('pricing_config', {
+    id: serial('id').primaryKey(),
+    config: jsonb('config').notNull().$type<Record<string, unknown>>(),
+    updatedBy: text('updated_by'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

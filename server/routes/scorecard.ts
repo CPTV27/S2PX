@@ -4,8 +4,12 @@
 import { Router, type Request, type Response } from 'express';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { requireRole } from '../middleware/requireRole.js';
 
 const router = Router();
+
+// All scorecard routes require CEO, admin, or viewer role
+router.use(requireRole('ceo', 'admin', 'viewer'));
 
 // ── Helper: parse common filters ──
 function parseFilters(req: Request) {

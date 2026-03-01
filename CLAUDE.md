@@ -16,7 +16,7 @@ npm run dev:server       # Server only
 
 # Verification (run all three before committing)
 npm run lint             # tsc --noEmit
-npm test                 # vitest (117/117 tests)
+npm test                 # vitest (138/138 tests)
 npm run build            # tsc -b && vite build → dist/
 
 # Run a single test file
@@ -43,11 +43,11 @@ server/        →  Express API on port 5001         (no @/ alias, uses @shared/
 shared/        →  Schema, engine, types            (alias: @shared/)
 ```
 
-**Frontend:** React 19, React Router DOM 7, Tailwind CSS 4, Framer Motion, Recharts, Lucide icons. 16 lazy-loaded route pages with manual vendor chunk splitting.
+**Frontend:** React 19, React Router DOM 7, Tailwind CSS 4, Framer Motion, Recharts, Lucide icons. 27 lazy-loaded route pages with manual vendor chunk splitting.
 
 **Backend:** Express with Firebase Admin SDK auth middleware. All `/api/*` routes require Bearer token except `/api/health` and `/api/public/*`.
 
-**Database:** PostgreSQL via Drizzle ORM (21 tables). Schema lives in `shared/schema/db.ts`.
+**Database:** PostgreSQL via Drizzle ORM (25 tables). Schema lives in `shared/schema/db.ts`.
 
 **Auth flow:** Firebase Google OAuth on client → Bearer token in every API call → `server/middleware/auth.ts` verifies and attaches `req.user`.
 
@@ -66,8 +66,8 @@ Framework-agnostic business logic imported by both client and server:
 
 ### API Layer
 - Client API calls go through `client/src/services/api.ts` (centralized fetch wrapper)
-- 14 route modules mounted in `server/routes.ts`
-- Route files in `server/routes/` (scoping, quotes, proposals, production, scorecard, geo, qbo, etc.)
+- 22 route modules mounted in `server/routes.ts`
+- Route files in `server/routes/` (scoping, quotes, proposals, production, scorecard, geo, qbo, scantech, pm-dashboard, financials, etc.)
 
 ### State Management
 React hooks + context — no external state library. Key hooks:
@@ -77,12 +77,14 @@ React hooks + context — no external state library. Key hooks:
 
 ## Testing
 
-**Unit tests (Vitest):** 3 test files in `shared/engine/__tests__/`:
+**Unit tests (Vitest):** 5 test files in `shared/engine/__tests__/`:
 - `prefillCascade.test.ts` (77 tests) — prefill mapping correctness
 - `shellGenerator.test.ts` (29 tests) — line item generation rules
+- `shellGenerator.edge.test.ts` (12 tests) — edge case coverage
 - `quoteTotals.test.ts` (11 tests) — total calculations
+- `quoteTotals.edge.test.ts` (9 tests) — edge case coverage
 
-**E2E tests (Playwright):** 6 spec files in `e2e/` with mock API interception. Config: `playwright.config.ts` (Desktop Chrome + iPhone 13).
+**E2E tests (Playwright):** 7 spec files in `e2e/` with mock API interception. Config: `playwright.config.ts` (Desktop Chrome + iPhone 13).
 
 **Note:** `client/src/engine/pricing.test.ts` is a legacy empty file — "No test suite found" is expected and excluded from vitest via config.
 

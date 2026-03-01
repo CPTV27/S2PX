@@ -1,8 +1,12 @@
 # S2PX — Scan2Plan OS X
 
+![Tests](https://img.shields.io/badge/tests-588%20passing-brightgreen) ![Unit](https://img.shields.io/badge/unit-138%2F138-brightgreen) ![E2E](https://img.shields.io/badge/e2e-450%20across%207%20specs-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue) ![Build](https://img.shields.io/badge/build-passing-brightgreen) ![Phases](https://img.shields.io/badge/phases-21%20shipped-blueviolet) ![Version](https://img.shields.io/badge/version-vX.1-orange)
+
 Full-stack operations platform for a 3D laser scanning and BIM modeling business. Manages the complete lifecycle from lead intake through scoping, CEO pricing, proposal generation, QuickBooks sync, production pipeline, field operations, cloud storage, and executive reporting.
 
 **Stack:** React 19 + Vite 6 | Express + TypeScript | PostgreSQL (Drizzle ORM) | Firebase Auth | Google Cloud Storage | PDFKit | Gemini AI
+
+> **Note:** S2PX is an internal tool — the frontend is behind Firebase Google OAuth. For a walkthrough, see the [Feature Map](#feature-map) below or trigger the built-in 14-step guided tour on first login.
 
 ---
 
@@ -32,7 +36,7 @@ s2px/
 
 ---
 
-## Database Schema (21 tables)
+## Database Schema (25 tables)
 
 | Table | Purpose |
 |-------|---------|
@@ -57,6 +61,10 @@ s2px/
 | `qbo_expenses_by_vendor` | Expense summaries by vendor |
 | `chat_channels` | Team chat channels with Google Chat webhook URLs |
 | `team_messages` | Channel messages with soft-delete and threading |
+| `field_uploads` | Photos, videos, scan files uploaded from the field |
+| `scan_checklists` | Pre-scan, post-scan, safety checklist templates |
+| `scan_checklist_responses` | Tech's responses to checklists per production project |
+| `scantech_tokens` | Token-based shareable links for field technicians |
 
 ---
 
@@ -163,16 +171,42 @@ s2px/
 - Live travel cost preview with real-time calculation
 - Rate overrides flow through pricing engine (`calculateStandardTravel`, `calculateBrooklynTravel`)
 
+### Phase 18: ScanTech Mobile Field App
+- Mobile-first field technician hub (`/scantech`, `/scantech/:projectId/*`)
+- 5-tab layout: Overview, Checklist, Upload, Scoping, Notes
+- Direct-to-GCS file uploads with camera capture + file picker
+- Pre-scan, post-scan, and safety checklists with required item validation
+- AI-assisted field notes with contextual awareness
+- Real-time online/offline status detection
+
+### Phase 19: ScanTech Public Access & PM Dashboard
+- Token-based public links for technicians without Google accounts (`/scantech-link/:token/*`)
+- PM "Mission Control" dashboard with aggregated field data
+- Signed download URLs for direct GCS file access
+- Checklist response tracking with per-item completion stats
+- Field upload category rollup and file audit trail
+
+### Phase 20: GCS Project Sidecars
+- `project.json` sidecar files in each of 567 GCS project folders
+- File inventory, DB context, and metadata per project folder
+- Live sidecar writer (fire-and-forget updates when production routes modify projects)
+- Batch sidecar generation script for existing projects
+
+### Phase 21: Financial Data Ingestion (QBO Enhancement)
+- QuickBooks CSV import pipeline (Sales, Estimates, P&L, Balance Sheet, Expenses, Customers)
+- Revenue dashboard overhaul: 6 tabs with actual QBO data
+- CFO AI Agent powered by Gemini 2.5 Pro (contextual financial Q&A)
+
 ### Performance Optimization
-- Route-level code splitting with React.lazy (16 lazy-loaded pages)
+- Route-level code splitting with React.lazy (27 lazy-loaded pages)
 - Manual vendor chunk splitting (react, recharts, framer-motion, firebase)
 - Lazy tab data fetching on Revenue and Scorecard pages
 - CSS transitions replacing heavy framer-motion animations
 - Initial bundle: ~840KB (down from 2.1MB)
 
 ### E2E Testing (Playwright)
-- 330 Playwright tests across 4 spec files
-- Full coverage: Dashboard, Pipeline, Revenue (6 tabs), Scorecard (4 tabs)
+- 450 Playwright tests across 7 spec files
+- Full coverage: Dashboard, Pipeline, Revenue (6 tabs), Scorecard (4 tabs), PM Dashboard, ScanTech
 - Data integrity validation, accessibility checks, tab navigation
 - All tests run against mock API responses (no external dependencies)
 
@@ -205,7 +239,11 @@ s2px/
 |------|------|
 | `/login` | Firebase Google OAuth |
 | `/upload/:token` | Client upload portal (token-validated) |
+| `/client-portal/:token` | Proposal review portal (magic link) |
 | `/field/:projectId` | Mobile field capture (auth required) |
+| `/scantech` | ScanTech field tech hub (auth required) |
+| `/scantech/:projectId/*` | ScanTech project tabs (auth required) |
+| `/scantech-link/:token/*` | ScanTech public link (token-validated) |
 
 ---
 
@@ -227,6 +265,9 @@ s2px/
 | GCS | `GET /api/projects/gcs/{folders,browse,download,analytics}` |
 | Team Chat | `GET/POST /api/chat/channels`, `PATCH /api/chat/channels/:id`, `GET/POST /api/chat/channels/:id/messages`, `GET /api/chat/channels/:id/messages/poll`, `PATCH/DELETE /api/chat/messages/:id` |
 | Financials | `GET /api/financials/{revenue-actual,pnl,estimates,balance-sheet,expenses,customers}` |
+| ScanTech | `GET /api/scantech/projects`, `GET /api/scantech/projects/:id`, checklists, uploads, notes |
+| ScanTech Public | `GET/POST /api/public/scantech/:token/*` (token-validated, no auth) |
+| PM Dashboard | `GET /api/pm/projects/:id/field-summary`, uploads, thumbnails, downloads |
 | Health | `GET /api/health` |
 
 ---
@@ -273,8 +314,8 @@ GOOGLE_MAPS_API_KEY=        # Geocoding
 ```bash
 npm install
 
-# Run database migrations
-npx tsx server/scripts/migrate-phase13.ts   # (latest)
+# Push database schema
+npm run db:push
 
 # Development (concurrent client + server)
 npm run dev
@@ -284,7 +325,7 @@ npm run dev
 # Type check
 npx tsc --noEmit
 
-# Test (117/117 passing)
+# Test (138/138 passing)
 npm test
 
 # Production build
@@ -306,7 +347,7 @@ The `shared/` directory contains framework-agnostic business logic used by both 
 
 | Module | Purpose |
 |--------|---------|
-| `shared/schema/db.ts` | Drizzle ORM table definitions (21 tables) |
+| `shared/schema/db.ts` | Drizzle ORM table definitions (25 tables) |
 | `shared/engine/shellGenerator.ts` | 13-rule line item generator (scoping form -> LineItemShell[]) |
 | `shared/engine/quoteTotals.ts` | `computeQuoteTotals()` with margin integrity guardrails |
 | `shared/engine/prefillCascade.ts` | 49 production stage prefill mappings |
@@ -318,16 +359,21 @@ The `shared/` directory contains framework-agnostic business logic used by both 
 ## Testing
 
 ```
-Unit Tests — 117/117 passing (Vitest)
-  shared/engine/__tests__/shellGenerator.test.ts    29 tests
-  shared/engine/__tests__/prefillCascade.test.ts    77 tests
-  shared/engine/__tests__/quoteTotals.test.ts       11 tests
+Unit Tests — 138/138 passing (Vitest)
+  shared/engine/__tests__/shellGenerator.test.ts         29 tests
+  shared/engine/__tests__/shellGenerator.edge.test.ts    12 tests
+  shared/engine/__tests__/prefillCascade.test.ts         77 tests
+  shared/engine/__tests__/quoteTotals.test.ts            11 tests
+  shared/engine/__tests__/quoteTotals.edge.test.ts        9 tests
 
-E2E Tests — 330/330 passing (Playwright)
-  e2e/dashboard.spec.ts     Dashboard KPIs, navigation, layout
-  e2e/pipeline.spec.ts      Kanban board, drag-and-drop, stage management
-  e2e/revenue.spec.ts       6-tab revenue dashboard, CFO Agent, QBO data
-  e2e/scorecard.spec.ts     4-tab scorecard, data integrity, accessibility
+E2E Tests — 450 tests across 7 specs (Playwright)
+  e2e/navigation.spec.ts        UI routing, sidebar, header, layout
+  e2e/revenue.spec.ts           6-tab revenue dashboard, CFO Agent, QBO data
+  e2e/scorecard.spec.ts         4-tab scorecard, data integrity, accessibility
+  e2e/data-integrity.spec.ts    Cross-tab math verification
+  e2e/pm-dashboard.spec.ts      PM Mission Control field data
+  e2e/scantech.spec.ts          Mobile ScanTech field ops
+  e2e/deal-lifecycle.spec.ts    Deal lifecycle flow
 ```
 
 ---
@@ -355,4 +401,4 @@ Firebase Hosting rewrites `/api/**` to Cloud Run, so the frontend and API share 
 
 ---
 
-*Built with TypeScript. 17 phases shipped. 447 tests passing. Zero compromises.*
+*Built with TypeScript. 21 phases shipped. 588 tests passing. Zero compromises.*

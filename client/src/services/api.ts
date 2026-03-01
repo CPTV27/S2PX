@@ -48,6 +48,19 @@ export async function fetchCurrentUser(): Promise<User | null> {
     }
 }
 
+/** List all users (CEO/admin only) */
+export async function fetchUsers(): Promise<User[]> {
+    return request('/api/auth/users');
+}
+
+/** Update a user's role (CEO/admin only) */
+export async function updateUserRole(userId: number, role: string): Promise<User> {
+    return request(`/api/auth/users/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+    });
+}
+
 // ── Leads ──
 export async function fetchLeads(): Promise<Lead[]> {
     return request('/api/leads');
@@ -84,40 +97,9 @@ export async function fetchProjectDetail(id: number): Promise<ProjectDetailRespo
     return request(`/api/projects/${id}`);
 }
 
-// ── CPQ / Products ──
-export async function fetchProducts(): Promise<Product[]> {
-    return request('/api/products');
-}
-
-export async function fetchQuotes(leadId?: number): Promise<Quote[]> {
-    const url = leadId ? `/api/cpq/quotes?leadId=${leadId}` : '/api/cpq/quotes';
-    return request(url);
-}
-
+// ── CPQ / Quotes ──
 export async function createQuote(data: Partial<Omit<Quote, 'id' | 'createdAt'>>): Promise<Quote> {
     return request('/api/cpq/quotes', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
-}
-
-export interface PricingRequest {
-    areas: { squareFootage: number; buildingType: string; lodLevel: string; disciplines: string[] }[];
-    distance?: number;
-    paymentTerms?: string;
-    risks?: string[];
-    multipliers?: string[];
-}
-
-export interface PricingResponse {
-    lineItems: { service: string; vendorCost: number; clientPrice: number }[];
-    totalCOGS: number;
-    totalClientPrice: number;
-    cogsMultiplier: number;
-}
-
-export async function calculatePricing(data: PricingRequest): Promise<PricingResponse> {
-    return request('/api/cpq/calculate-pricing', {
         method: 'POST',
         body: JSON.stringify(data),
     });
@@ -316,6 +298,8 @@ export interface ScopeAreaData {
     cadDeliverable: string;
     act?: { enabled: boolean; sqft?: number };
     belowFloor?: { enabled: boolean; sqft?: number };
+    site?: { enabled: boolean; sqft?: number };
+    matterport?: { enabled: boolean; sqft?: number };
     customLineItems?: { description: string; amount: number }[];
     sortOrder?: number;
 }
@@ -1154,6 +1138,10 @@ export async function seedChatChannels(): Promise<ChatChannel[]> {
     return request('/api/chat/seed', { method: 'POST' });
 }
 
+export async function testChatWebhook(channelId: number): Promise<{ success: boolean }> {
+    return request(`/api/chat/channels/${channelId}/test-webhook`, { method: 'POST' });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Scantech — Mobile Field Operations (Phase 18)
 // ═══════════════════════════════════════════════════════════════
@@ -1316,4 +1304,173 @@ export async function getFieldThumbnailUrl(
     uploadId: number,
 ): Promise<{ url: string; filename: string; contentType: string }> {
     return request(`/api/pm/projects/${projectId}/uploads/${uploadId}/thumbnail`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Scantech Tokens — Shareable Link Management (Phase 20)
+// ═══════════════════════════════════════════════════════════════
+
+export interface ScantechTokenData {
+    id: number;
+    productionProjectId: number;
+    token: string;
+    techName: string;
+    techEmail: string | null;
+    techPhone: string | null;
+    expiresAt: string;
+    isActive: boolean;
+    lastAccessedAt: string | null;
+    accessCount: number;
+    createdAt: string;
+    createdByName?: string;
+}
+
+/** Create a scantech token for a project */
+export async function createScantechToken(data: {
+    productionProjectId: number;
+    techName: string;
+    techEmail?: string;
+    techPhone?: string;
+    expiresInDays?: number;
+}): Promise<ScantechTokenData> {
+    return request('/api/scantech/tokens', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** List tokens for a project */
+export async function fetchScantechTokens(projectId: number): Promise<ScantechTokenData[]> {
+    return request(`/api/scantech/tokens?projectId=${projectId}`);
+}
+
+/** Revoke a scantech token */
+export async function revokeScantechToken(id: number): Promise<{ message: string }> {
+    return request(`/api/scantech/tokens/${id}`, { method: 'DELETE' });
+}
+
+/** Send scantech link via email */
+export async function sendScantechTokenEmail(id: number): Promise<{ message: string; to: string }> {
+    return request(`/api/scantech/tokens/${id}/send`, { method: 'POST' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Scantech Public — Token-Validated (No Firebase Auth)
+// ═══════════════════════════════════════════════════════════════
+
+/** Unauthenticated fetch for public scantech routes */
+async function publicFetch<T>(url: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options?.headers as Record<string, string>),
+    };
+
+    const res = await fetch(url, { headers, ...options });
+
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(error.error || error.message || `API Error: ${res.status}`);
+    }
+
+    return res.json();
+}
+
+/** Fetch project data via public scantech token */
+export async function fetchPublicScantechProject(token: string): Promise<ScantechProjectDetail> {
+    return publicFetch(`/api/public/scantech/${token}`);
+}
+
+/** Fetch checklists via public scantech token */
+export async function fetchPublicScantechChecklists(token: string): Promise<ChecklistTemplate[]> {
+    return publicFetch(`/api/public/scantech/${token}/checklists`);
+}
+
+/** Submit checklist via public scantech token */
+export async function submitPublicChecklistResponse(
+    token: string,
+    data: {
+        checklistId: number;
+        responses: ChecklistResponse[];
+        status: 'in_progress' | 'complete' | 'flagged';
+    },
+): Promise<ChecklistSubmission> {
+    return publicFetch(`/api/public/scantech/${token}/checklist`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Get signed URL for upload via public scantech token */
+export async function getPublicUploadSignedUrl(
+    token: string,
+    data: {
+        filename: string;
+        contentType: string;
+        sizeBytes: number;
+        fileCategory: FileCategory;
+        captureMethod: CaptureMethod;
+    },
+): Promise<{ signedUrl: string; gcsPath: string; bucket: string }> {
+    return publicFetch(`/api/public/scantech/${token}/upload/signed-url`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Confirm upload via public scantech token */
+export async function confirmPublicUpload(
+    token: string,
+    data: {
+        filename: string;
+        gcsPath: string;
+        bucket: string;
+        sizeBytes: number;
+        contentType: string;
+        fileCategory: FileCategory;
+        captureMethod?: CaptureMethod;
+        notes?: string;
+        metadata?: Record<string, unknown>;
+    },
+): Promise<FieldUploadRecord> {
+    return publicFetch(`/api/public/scantech/${token}/upload/confirm`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+/** Save field notes via public scantech token */
+export async function savePublicFieldNotes(
+    token: string,
+    notes: FieldNote[],
+): Promise<{ ok: boolean; noteCount: number }> {
+    return publicFetch(`/api/public/scantech/${token}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Pricing Config — DB-Driven Pricing Constants (Phase 22)
+// ═══════════════════════════════════════════════════════════════
+
+import type { PricingConfig } from '@shared/types/pricingConfig';
+
+export interface PricingConfigResponse {
+    id: number | null;
+    config: PricingConfig;
+    updatedAt: string | null;
+    updatedBy: string | null;
+}
+
+/** Fetch current pricing config (DB row merged over defaults) */
+export async function fetchPricingConfig(): Promise<PricingConfigResponse> {
+    return request('/api/pricing-config');
+}
+
+/** Update pricing config (CEO/admin only) */
+export async function updatePricingConfig(config: PricingConfig): Promise<PricingConfigResponse> {
+    return request('/api/pricing-config', {
+        method: 'PUT',
+        body: JSON.stringify({ config }),
+    });
 }

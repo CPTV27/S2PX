@@ -1,6 +1,6 @@
 # S2PX — Scan2Plan OS X | Product Architecture Document
 
-**Version:** X.1 · **Updated:** 2026-02-26 · **Phase:** 12 complete (13 phases shipped)
+**Version:** X.1 · **Updated:** 2026-03-01 · **Phase:** 21 complete (21 phases shipped)
 
 ---
 
@@ -38,18 +38,18 @@ S2PX is a full-stack enterprise SaaS platform for the 3D scanning and BIM (Build
 S2P-Studio/
 ├── client/src/           # React frontend
 │   ├── components/       # 50+ components (kb/, pricing/, scoping/, production/, archive/, field/, notebook/)
-│   ├── pages/            # 21 page components
+│   ├── pages/            # 27 page components
 │   ├── hooks/            # Custom hooks (useAuth, useQuoteSession, useDealWorkspace, useScopingForm)
 │   ├── services/         # API client, Firebase, Gemini
 │   ├── lib/              # Utility functions (cn, formatDate, getStatusColor)
 │   └── engine/           # Legacy client-side pricing (deprecated)
 ├── server/               # Express backend
-│   ├── routes/           # 16 route modules
+│   ├── routes/           # 22 route modules
 │   ├── middleware/        # Firebase auth middleware
 │   ├── scripts/          # DB seed scripts (seed-kb.ts, migrate-phase12.ts)
 │   ├── db.ts             # Drizzle database connection
 │   ├── index.ts          # Express app setup + startup
-│   └── routes.ts         # Route registry (mounts all 16 modules)
+│   └── routes.ts         # Route registry (mounts all 22 modules)
 ├── shared/               # Code shared between client & server
 │   ├── schema/           # Drizzle table definitions + constants
 │   ├── engine/           # Prefill cascade (49 mappings) + shell generator (13 rules)
@@ -76,7 +76,7 @@ S2P-Studio/
 
 ## 3. Database Schema
 
-### 12 Tables (PostgreSQL via Drizzle ORM)
+### 25 Tables (PostgreSQL via Drizzle ORM)
 
 #### 3.1 `users` — Authentication & Identity
 | Column | Type | Notes |
@@ -272,6 +272,108 @@ Stage data is a nested JSON object keyed by stage name, e.g.:
 | `uploaded_by_name` | text | Optional uploader name |
 | `uploaded_at` | timestamp | |
 
+#### 3.13 `proposal_templates` — Editable Proposal Boilerplate
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `section_key` | text | Section identifier (about, why, capabilities, etc.) |
+| `title` | text | Display title |
+| `content` | text | Markdown template content with `{{variable}}` placeholders |
+| `is_active` | boolean | Active template flag |
+| `sort_order` | int | Display ordering |
+| `created_at`, `updated_at` | timestamp | |
+
+#### 3.14 `qbo_customers` — QuickBooks Customer Records
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `customer_name` | text | Display name |
+| `company` | text | Company name |
+| `email` | text | Contact email |
+| `phone` | text | Phone number |
+| `bill_address`, `ship_address` | text | Addresses |
+| `balance` | numeric | Outstanding balance |
+| `created_at` | timestamp | |
+
+#### 3.15–3.18 `qbo_sales_transactions`, `qbo_estimates`, `qbo_pnl_monthly`, `qbo_balance_sheet`, `qbo_expenses_by_vendor`
+QBO financial data tables for the Revenue dashboard (6 tabs). Populated via CSV import pipeline.
+
+#### 3.19 `chat_channels` — Team Chat Channels
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `name` | text | Channel name |
+| `emoji` | text | Channel emoji |
+| `description` | text | Channel description |
+| `webhook_url` | text | Google Chat webhook (outbound sync) |
+| `created_by` | int FK → users | |
+| `created_at`, `updated_at` | timestamp | |
+
+#### 3.20 `team_messages` — Channel Messages
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `channel_id` | int FK → chat_channels (CASCADE) | |
+| `user_id` | int FK → users | |
+| `content` | text | Message body |
+| `parent_id` | int | Threading (nullable) |
+| `deleted_at` | timestamp | Soft delete |
+| `created_at`, `updated_at` | timestamp | |
+
+#### 3.21 `field_uploads` — ScanTech Field File Uploads
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `production_project_id` | int FK | |
+| `filename` | text | Original filename |
+| `gcs_path` | text | Full GCS path |
+| `bucket` | text | GCS bucket name |
+| `size_bytes` | text | File size |
+| `content_type` | text | MIME type |
+| `file_category` | text | `photo` \| `video` \| `scan_file` \| `document` |
+| `capture_method` | text | `camera` \| `file_picker` |
+| `metadata` | jsonb | Optional metadata |
+| `notes` | text | Upload notes |
+| `uploaded_by` | int FK → users | |
+| `created_at` | timestamp | |
+
+#### 3.22 `scan_checklists` — Checklist Templates
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `slug` | text UNIQUE | URL-safe identifier |
+| `title` | text | Checklist name |
+| `checklist_type` | text | `pre_scan` \| `post_scan` \| `safety` |
+| `items` | jsonb | `ChecklistItemDef[]` — questions, required flags |
+| `is_active` | boolean | Active flag |
+| `version` | int | Template version |
+| `created_at`, `updated_at` | timestamp | |
+
+#### 3.23 `scan_checklist_responses` — Tech Responses
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `checklist_id` | int FK → scan_checklists | |
+| `production_project_id` | int FK | |
+| `responded_by` | int FK → users | |
+| `responses` | jsonb | `ChecklistResponse[]` — per-item checked/notes |
+| `status` | text | `in_progress` \| `complete` \| `flagged` |
+| `completed_at` | timestamp | |
+| `created_at`, `updated_at` | timestamp | |
+
+#### 3.24 `scantech_tokens` — Public Field Tech Links
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | serial PK | |
+| `production_project_id` | int FK | |
+| `token` | text UNIQUE | Random token for public access |
+| `tech_name` | text | Technician name |
+| `tech_email` | text | Technician email |
+| `created_by` | int FK → users | |
+| `expires_at` | timestamp | Link expiration |
+| `is_active` | boolean | Revocable |
+| `created_at` | timestamp | |
+
 ### GCS Bucket Architecture
 
 | Bucket | Purpose | Access |
@@ -421,6 +523,57 @@ All scorecard endpoints accept: `?months`, `?tier`, `?buildingType`, `?leadSourc
 |--------|------|-------------|
 | POST | `/api/geo/lookup` | Address → lat/lng + footprint (Google Maps) |
 | POST | `/api/geo/batch` | Batch geocode scoping forms |
+
+#### Financials (QBO Data)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/financials/revenue-actual` | Actual revenue from QBO sales data |
+| GET | `/api/financials/pnl` | Profit & Loss by month |
+| GET | `/api/financials/estimates` | QBO estimates with acceptance tracking |
+| GET | `/api/financials/balance-sheet` | Balance sheet snapshots |
+| GET | `/api/financials/expenses` | Expenses by vendor |
+| GET | `/api/financials/customers` | QBO customer records |
+
+#### Team Chat
+| Method | Path | Description |
+|--------|------|-------------|
+| GET/POST | `/api/chat/channels` | List/create channels |
+| PATCH | `/api/chat/channels/:id` | Update channel |
+| GET/POST | `/api/chat/channels/:id/messages` | List/send messages |
+| GET | `/api/chat/channels/:id/messages/poll` | Poll for new messages (3s) |
+| PATCH/DELETE | `/api/chat/messages/:id` | Update/soft-delete message |
+
+#### ScanTech (Authenticated)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/scantech/projects` | List field tech projects |
+| GET | `/api/scantech/projects/:id` | Full project detail (scoping + uploads + checklists + notes) |
+| GET | `/api/scantech/checklists` | Active checklist templates |
+| POST | `/api/scantech/projects/:id/checklist` | Submit checklist response |
+| POST | `/api/scantech/projects/:id/upload/signed-url` | GCS signed URL for direct upload |
+| POST | `/api/scantech/projects/:id/upload/confirm` | Confirm completed upload |
+| PUT | `/api/scantech/projects/:id/notes` | Save field notes |
+
+#### ScanTech Public (Token-Based)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/public/scantech/:token` | **Public** — project data via token |
+| GET | `/api/public/scantech/:token/checklists` | **Public** — checklist templates |
+| POST | `/api/public/scantech/:token/checklist` | **Public** — submit checklist |
+| POST | `/api/public/scantech/:token/upload/signed-url` | **Public** — GCS signed URL |
+| POST | `/api/public/scantech/:token/upload/confirm` | **Public** — confirm upload |
+| PUT | `/api/public/scantech/:token/notes` | **Public** — save field notes |
+| POST | `/api/scantech/tokens` | Create shareable tech link (auth) |
+| GET | `/api/scantech/tokens` | List tokens for project (auth) |
+| DELETE | `/api/scantech/tokens/:id` | Revoke token (auth) |
+
+#### PM Dashboard
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/pm/projects/:id/field-summary` | Aggregated field data (uploads, checklists, notes, scoping) |
+| GET | `/api/pm/projects/:id/uploads` | Paginated upload list (?category, ?limit, ?offset) |
+| GET | `/api/pm/projects/:id/uploads/:uploadId/download` | Signed download URL (1hr expiry) |
+| GET | `/api/pm/projects/:id/uploads/:uploadId/thumbnail` | Signed thumbnail URL (15min, photos/videos only) |
 
 #### Uploads
 | Method | Path | Description |
@@ -572,7 +725,7 @@ interface ProfitabilityReport {
 
 ## 7. Frontend Architecture
 
-### 7.1 Page Map (21 Pages)
+### 7.1 Page Map (27 Pages)
 
 | Route | Page | Auth | Description |
 |-------|------|------|-------------|
@@ -594,6 +747,11 @@ interface ProfitabilityReport {
 | `/dashboard/proposals/:id` | ProposalBuilder | Yes | PDF proposal generation |
 | `/dashboard/production` | ProductionPipeline | Yes | Production Kanban |
 | `/dashboard/production/:id` | ProductionDetail | Yes | Single project detail |
+| `/dashboard/settings/proposal-template` | ProposalTemplateSettings | Yes | Proposal template editor |
+| `/scantech` | ScantechList | Yes | ScanTech field tech hub |
+| `/scantech/:projectId/*` | ScantechProject | Yes | ScanTech project (5 tabs) |
+| `/scantech-link/:token/*` | ScantechPublic | No | Public ScanTech link (token-validated) |
+| `/client-portal/:token` | ClientPortal | No | Public proposal review portal |
 
 ### 7.2 Component Architecture
 
@@ -686,7 +844,7 @@ npm run dev              # Concurrently: client (5173) + server (5001)
 npm run dev:client       # Vite dev server only
 npm run dev:server       # Server with tsx watch
 npm run build            # tsc -b && vite build
-npm run test             # vitest run (117 tests)
+npm run test             # vitest run (138 tests)
 ```
 
 Vite proxies `/api` → `http://localhost:5001` in dev mode.
@@ -740,16 +898,32 @@ Uses `tsx` for direct TypeScript execution — avoids path alias build issues.
 ## 11. Testing
 
 **Framework:** Vitest 4.0
-**Test count:** 117/117 passing
-**Test suites:**
+**Unit test count:** 138/138 passing
+**E2E test count:** 450 tests across 7 Playwright specs
+
+**Unit test suites:**
 
 | Suite | Tests | Description |
 |-------|-------|-------------|
 | `shared/engine/__tests__/prefillCascade.test.ts` | 77 | All 49 mappings × multiple transitions + edge cases |
 | `shared/engine/__tests__/shellGenerator.test.ts` | 29 | 13 rules × configuration variants |
-| `client/src/engine/pricing.test.ts` | 0 | Legacy empty file (expected "No test suite found") |
+| `shared/engine/__tests__/shellGenerator.edge.test.ts` | 12 | Edge case coverage |
+| `shared/engine/__tests__/quoteTotals.test.ts` | 11 | Total calculations + integrity checks |
+| `shared/engine/__tests__/quoteTotals.edge.test.ts` | 9 | Edge case coverage |
 
-**Golden tests:** 73 pricing rate assertions (archived from pre-CEO pricing era).
+**E2E test specs:**
+
+| Spec | Tests | Coverage |
+|------|-------|----------|
+| `e2e/navigation.spec.ts` | 37 | UI routing, sidebar, header, responsive layout |
+| `e2e/revenue.spec.ts` | 127 | 6-tab revenue dashboard, CFO Agent, QBO data |
+| `e2e/scorecard.spec.ts` | 100 | 4-tab scorecard, data integrity, accessibility |
+| `e2e/data-integrity.spec.ts` | 61 | Cross-tab math verification |
+| `e2e/pm-dashboard.spec.ts` | 54 | PM Mission Control field data |
+| `e2e/scantech.spec.ts` | 47 | Mobile ScanTech field operations |
+| `e2e/deal-lifecycle.spec.ts` | 24 | Deal lifecycle flow |
+
+**Note:** `client/src/engine/pricing.test.ts` is a legacy empty file — "No test suite found" is expected and excluded from vitest via config.
 
 ---
 
@@ -770,6 +944,15 @@ Uses `tsx` for direct TypeScript execution — avoids path alias build issues.
 | 10 | Knowledge Base (CRUD, search, AI chat, AI editing) | ✅ |
 | 11 | Geo (address lookup, footprint, batch geocoding) | ✅ |
 | 12 | KB sidebar redesign, Archive page, GCS upload portal | ✅ |
+| 13 | Proposal template system (DB-backed, editable boilerplate, variable substitution) | ✅ |
+| 14 | Interactive guided tour (14-step walkthrough, spotlight overlay) | ✅ |
+| 15 | Financial data ingestion (QBO CSV import, 6 new tables, Revenue dashboard overhaul) | ✅ |
+| 16 | Team chat (PostgreSQL-backed channels, real-time polling, Google Chat webhooks) | ✅ |
+| 17 | Travel enhancement (Distance Matrix API, mileage rate overrides, scan day fees) | ✅ |
+| 18 | ScanTech mobile field app (5-tab layout, camera capture, checklists, AI notes) | ✅ |
+| 19 | ScanTech public access + PM dashboard (token links, field summary aggregation) | ✅ |
+| 20 | GCS project sidecars (project.json in 567 folders, live writer, batch generation) | ✅ |
+| 21 | Financial data seeding (QBO customers, sales, estimates, P&L, balance sheet) | ✅ |
 
 ---
 

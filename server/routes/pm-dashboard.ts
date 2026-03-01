@@ -131,7 +131,7 @@ router.get('/projects/:id/field-summary', async (req: Request, res: Response) =>
                 metadata: fieldUploads.metadata,
                 notes: fieldUploads.notes,
                 createdAt: fieldUploads.createdAt,
-                uploadedByName: users.displayName,
+                uploadedByName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`,
             })
             .from(fieldUploads)
             .leftJoin(users, eq(fieldUploads.uploadedBy, users.id))
@@ -187,7 +187,7 @@ router.get('/projects/:id/field-summary', async (req: Request, res: Response) =>
                 completedAt: scanChecklistResponses.completedAt,
                 createdAt: scanChecklistResponses.createdAt,
                 updatedAt: scanChecklistResponses.updatedAt,
-                respondedByName: users.displayName,
+                respondedByName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`,
             })
             .from(scanChecklistResponses)
             .leftJoin(users, eq(scanChecklistResponses.respondedBy, users.id))
@@ -285,7 +285,7 @@ router.get('/projects/:id/uploads', async (req: Request, res: Response) => {
                 metadata: fieldUploads.metadata,
                 notes: fieldUploads.notes,
                 createdAt: fieldUploads.createdAt,
-                uploadedByName: users.displayName,
+                uploadedByName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`,
             })
             .from(fieldUploads)
             .leftJoin(users, eq(fieldUploads.uploadedBy, users.id))

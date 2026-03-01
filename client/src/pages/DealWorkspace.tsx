@@ -86,7 +86,7 @@ export function DealWorkspace() {
                         <RefreshCw size={13} />
                         Regenerate Shells
                     </button>
-                    {saveState === 'saved' ? (
+                    {quote?.id ? (
                         <Link
                             to={`/dashboard/proposals/${formId}`}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"

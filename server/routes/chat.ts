@@ -96,6 +96,31 @@ router.patch('/channels/:id', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/chat/channels/:id/test-webhook — send a test message to verify Google Chat webhook
+router.post('/channels/:id/test-webhook', async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) { res.status(400).json({ error: 'Invalid ID' }); return; }
+
+        const [channel] = await db.select().from(chatChannels).where(eq(chatChannels.id, id));
+        if (!channel) { res.status(404).json({ error: 'Channel not found' }); return; }
+        if (!channel.googleChatWebhookUrl) {
+            res.status(400).json({ error: 'No webhook URL configured for this channel' });
+            return;
+        }
+
+        await forwardToGoogleChat(
+            channel.googleChatWebhookUrl,
+            '✅ Test from S2PX — Google Chat webhook is working!',
+            { firstName: 'S2PX', lastName: 'Bot', email: 'system@s2px.app' }
+        );
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('Webhook test error:', error);
+        res.status(502).json({ error: 'Webhook test failed', detail: error.message });
+    }
+});
+
 // ══════════════════════════════════════════════════════════════
 // ── Messages ──
 // ══════════════════════════════════════════════════════════════

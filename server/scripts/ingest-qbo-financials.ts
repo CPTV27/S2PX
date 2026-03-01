@@ -23,7 +23,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const { Client } = pg;
-const DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:wmh0PMUXgOrcGU9qvNFqZJX@localhost:5433/s2px';
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error('DATABASE_URL is required. Set it in .env or pass it as an environment variable.');
 
 const BASE_DIR = path.resolve(__dirname, '../../Financial Records');
 

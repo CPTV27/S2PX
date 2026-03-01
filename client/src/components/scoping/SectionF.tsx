@@ -4,6 +4,7 @@ import { FormField, inputStyles, selectStyles } from './FormField';
 import { FormSection } from './FormSection';
 import { FileUpload } from './FileUpload';
 import { BIM_DELIVERABLES, BIM_VERSIONS } from '@shared/schema/constants';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 
 interface SectionFProps {
     upid?: string;
@@ -12,6 +13,8 @@ interface SectionFProps {
 export function SectionF({ upid }: SectionFProps) {
     const { register, watch, setValue, formState: { errors } } = useFormContext<ScopingFormValues>();
     const customTemplate = watch('customTemplate');
+    const { config } = usePricingConfig();
+    const geoPrice = config.georeferencingPerStructure.toLocaleString('en-US');
 
     return (
         <FormSection title="Section F" subtitle="Deliverable Format" badge="4 fields">
@@ -60,7 +63,7 @@ export function SectionF({ upid }: SectionFProps) {
                             {...register('georeferencing')}
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-sm text-slate-700">Yes — $1,500/structure</span>
+                        <span className="text-sm text-slate-700">Yes — ${geoPrice}/structure</span>
                     </label>
                 </FormField>
             </div>

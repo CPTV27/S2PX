@@ -7,8 +7,9 @@ import {
     MessageSquare, AlertTriangle, MapPin, Camera, Clock, Sparkles,
 } from 'lucide-react';
 import { useScantechContext } from './ScantechLayout';
+import { useScantechApi } from './ScantechApiContext';
 import { ScantechAIChat } from './ScantechAIChat';
-import { saveFieldNotes, type FieldNote } from '@/services/api';
+import type { FieldNote } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 const AUTOSAVE_MS = 5000;
@@ -22,6 +23,7 @@ const CATEGORY_CONFIG = {
 
 export function NotesTab() {
     const { project, reloadProject, online } = useScantechContext();
+    const api = useScantechApi();
     const [notes, setNotes] = useState<FieldNote[]>(project.notes || []);
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
@@ -42,7 +44,7 @@ export function NotesTab() {
         if (!online) return;
         setSaving(true);
         try {
-            await saveFieldNotes(project.id, notesToSave);
+            await api.saveNotes(notesToSave);
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch {
@@ -50,7 +52,7 @@ export function NotesTab() {
         } finally {
             setSaving(false);
         }
-    }, [project.id, online]);
+    }, [api, online]);
 
     const triggerSave = useCallback((updatedNotes: FieldNote[]) => {
         dirty.current = true;

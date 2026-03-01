@@ -8,6 +8,7 @@ import { eq, desc, sql, and } from 'drizzle-orm';
 import { executePrefillCascade } from '../../shared/engine/prefillCascade.js';
 import { PRODUCTION_STAGES, type ProductionStage } from '../../shared/schema/constants.js';
 import { getNextStage } from '../../shared/types/production.js';
+import { updateSidecarAsync } from '../lib/sidecarWriter.js';
 
 const router = Router();
 
@@ -64,6 +65,9 @@ router.post('/', async (req: Request, res: Response) => {
                 stageData: { scheduling: {} },
             })
             .returning();
+
+        // Update GCS sidecar (fire-and-forget)
+        updateSidecarAsync(project.id);
 
         res.status(201).json(project);
     } catch (error: any) {
@@ -170,6 +174,9 @@ router.patch('/:id', async (req: Request, res: Response) => {
             .where(eq(productionProjects.id, id))
             .returning();
 
+        // Update GCS sidecar (fire-and-forget)
+        updateSidecarAsync(id);
+
         res.json(updated);
     } catch (error: any) {
         console.error('Update production project error:', error);
@@ -223,6 +230,9 @@ router.post('/:id/advance', async (req: Request, res: Response) => {
             })
             .where(eq(productionProjects.id, id))
             .returning();
+
+        // Update GCS sidecar (fire-and-forget)
+        updateSidecarAsync(id);
 
         res.json({
             project: updated,

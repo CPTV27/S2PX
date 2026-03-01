@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTour } from '@/hooks/useTour';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { CommandPalette } from './CommandPalette';
+import { canAccessNav, ROLE_LABELS, type AppRole } from '@shared/permissions';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -56,6 +57,9 @@ export function DashboardLayout() {
     const { user, logout } = useAuth();
     const { hasCompleted: tourCompleted, start: startTour } = useTour();
     const { isOpen: searchOpen, open: openSearch, close: closeSearch } = useCommandPalette();
+
+    const userRole = (user?.role || 'user') as AppRole;
+    const visibleNavItems = navItems.filter(item => canAccessNav(userRole, item.path));
 
     // Auto-start tour on first visit
     useEffect(() => {
@@ -98,7 +102,7 @@ export function DashboardLayout() {
 
                 {/* Nav */}
                 <nav className="flex-1 py-6 space-y-1 px-2 lg:px-3">
-                    {navItems.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const isExternal = 'external' in item && item.external;
                         const isActive = !isExternal && (
                             location.pathname === item.path ||
@@ -179,7 +183,7 @@ export function DashboardLayout() {
                         </button>
                         <div className="text-right hidden md:block">
                             <div className="text-sm font-semibold">{displayName}</div>
-                            <div className="text-xs text-s2p-muted capitalize">{user?.role ?? 'User'}</div>
+                            <div className="text-xs text-s2p-muted">{ROLE_LABELS[userRole] || 'User'}</div>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-s2p-primary/10 border border-s2p-border flex items-center justify-center text-s2p-primary font-bold text-sm">
                             {initials}

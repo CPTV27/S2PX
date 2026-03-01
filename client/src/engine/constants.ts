@@ -1,73 +1,39 @@
-// Notebook CPQ — Pricing Constants
-// Source of truth: NOTEBOOK_CPQ_CLAUDE_CODE_SPEC.md + Pricing Engine Specification
+// ── Pricing Constants ──
+// Default values re-exported from the shared PricingConfig type.
+// In production, these are overridden by DB-stored config via /api/pricing-config.
+// This file provides compile-time defaults for the pricing engine and tests.
 
-export const MIN_SQFT_FLOOR = 3000;
-export const UPTEAM_MULTIPLIER_FALLBACK = 0.65;
-export const SQFT_PER_ACRE = 43560;
-export const TIER_A_THRESHOLD = 50000;
-export const ACT_RATE_PER_SQFT = 0.20;
-export const MATTERPORT_RATE_PER_SQFT = 0.01;
+import { DEFAULT_PRICING_CONFIG } from '@shared/types/pricingConfig';
 
-export const FY26_MARGIN_FLOOR = 0.40;
-export const MARGIN_GUARDRAIL = 0.45;
-export const MARGIN_SLIDER_MIN = 0.35;
-export const MARGIN_SLIDER_MAX = 0.60;
-export const MARGIN_DEFAULT = 0.45;
+// Re-export the shared config as the single source of truth for defaults
+export { DEFAULT_PRICING_CONFIG };
 
-export const DEFAULT_BASE_RATES: Record<string, number> = {
-  arch: 0.25,
-  mepf: 0.30,
-  structure: 0.20,
-  site: 0.15,
-};
+// ── Convenience re-exports (backward compat for pricing.ts imports) ──
+export const MIN_SQFT_FLOOR = DEFAULT_PRICING_CONFIG.minSqftFloor;
+export const UPTEAM_MULTIPLIER_FALLBACK = DEFAULT_PRICING_CONFIG.upteamMultiplierFallback;
+export const SQFT_PER_ACRE = DEFAULT_PRICING_CONFIG.sqftPerAcre;
+export const TIER_A_THRESHOLD = DEFAULT_PRICING_CONFIG.tierAThreshold;
+export const ACT_RATE_PER_SQFT = DEFAULT_PRICING_CONFIG.actRatePerSqft;
+export const MATTERPORT_RATE_PER_SQFT = DEFAULT_PRICING_CONFIG.matterportRatePerSqft;
 
-export const LOD_MULTIPLIERS: Record<string, number> = {
-  "200": 1.0,
-  "300": 1.3,
-  "350": 1.5,
-};
+export const FY26_MARGIN_FLOOR = DEFAULT_PRICING_CONFIG.fy26MarginFloor;
+export const MARGIN_GUARDRAIL = DEFAULT_PRICING_CONFIG.marginGuardrail;
+export const MARGIN_SLIDER_MIN = DEFAULT_PRICING_CONFIG.marginSliderMin;
+export const MARGIN_SLIDER_MAX = DEFAULT_PRICING_CONFIG.marginSliderMax;
+export const MARGIN_DEFAULT = DEFAULT_PRICING_CONFIG.marginDefault;
 
-export const RISK_PREMIUMS: Record<string, number> = {
-  occupied: 0.15,
-  hazardous: 0.25,
-  no_power: 0.20,
-};
+export const DEFAULT_BASE_RATES = DEFAULT_PRICING_CONFIG.baseRates;
+export const LOD_MULTIPLIERS = DEFAULT_PRICING_CONFIG.lodMultipliers;
+export const RISK_PREMIUMS = DEFAULT_PRICING_CONFIG.riskPremiums;
+export const SCOPE_PORTIONS = DEFAULT_PRICING_CONFIG.scopePortions;
+export const SCOPE_DISCOUNTS = DEFAULT_PRICING_CONFIG.scopeDiscounts;
+export const PAYMENT_TERM_PREMIUMS = DEFAULT_PRICING_CONFIG.paymentTermPremiums;
+export const TRAVEL_RATES = DEFAULT_PRICING_CONFIG.travelRates;
+export const BROOKLYN_BASE_FEES = DEFAULT_PRICING_CONFIG.brooklynBaseFees;
+export const LANDSCAPE_RATES = DEFAULT_PRICING_CONFIG.landscapeRates;
+export const ELEVATION_TIERS = DEFAULT_PRICING_CONFIG.elevationTiers;
 
-export const SCOPE_PORTIONS: Record<string, number> = {
-  full: 1.0,
-  interior: 0.65,
-  exterior: 0.35,
-};
-
-export const SCOPE_DISCOUNTS: Record<string, number> = {
-  full: 0,
-  interior: 0.35,
-  exterior: 0.65,
-  mixed: 0,
-};
-
-export const PAYMENT_TERM_PREMIUMS: Record<string, number> = {
-  partner: 0,
-  owner: 0,
-  net30: 0.05,
-  net60: 0.10,
-  net90: 0.15,
-};
-
-export const TRAVEL_RATES = {
-  standard: 3,
-  brooklyn: 4,
-  brooklynThreshold: 20,
-  scanDayFeeThreshold: 75,
-  scanDayFee: 300,
-};
-
-export const BROOKLYN_BASE_FEES: Record<string, number> = {
-  tierC: 150,
-  tierB: 300,
-  tierA: 0,
-};
-
+// ── Non-pricing constants (structural, not configurable) ──
 export const BUILDING_TYPES: Record<string, { name: string; method: string }> = {
   "1": { name: "Office Building", method: "per-sqft" },
   "2": { name: "Educational", method: "per-sqft" },
@@ -87,29 +53,6 @@ export const BUILDING_TYPES: Record<string, { name: string; method: string }> = 
   "16": { name: "ACT Ceilings Only", method: "per-sqft" },
   "17": { name: "Matterport Only", method: "per-sqft" },
 };
-
-// Landscape per-acre rates [<5ac, 5-20ac, 20-50ac, 50-100ac, 100+ac]
-export const LANDSCAPE_RATES: Record<string, Record<string, number[]>> = {
-  "14": { // Built Landscape
-    "200": [875, 625, 375, 250, 160],
-    "300": [1000, 750, 500, 375, 220],
-    "350": [1250, 1000, 750, 500, 260],
-  },
-  "15": { // Natural Landscape
-    "200": [625, 375, 250, 200, 140],
-    "300": [750, 500, 375, 275, 200],
-    "350": [1000, 750, 500, 325, 240],
-  },
-};
-
-// Elevation tiered pricing
-export const ELEVATION_TIERS = [
-  { max: 10, rate: 25 },
-  { max: 20, rate: 20 },
-  { max: 100, rate: 15 },
-  { max: 300, rate: 10 },
-  { max: Infinity, rate: 5 },
-];
 
 // Dispatch locations (standard = $3/mi, Brooklyn = tiered)
 export const DISPATCH_LOCATIONS = [

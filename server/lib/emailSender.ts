@@ -99,6 +99,77 @@ export function buildProposalEmailHtml(params: {
 </html>`.trim();
 }
 
+// ── Scantech Link Email ──
+// Sends a field technician a branded link to the Scantech mobile app.
+
+interface SendScantechLinkOptions {
+    to: string;
+    techName: string;
+    projectName: string;
+    projectAddress: string;
+    upid: string;
+    linkUrl: string;
+    expiresAt: Date;
+}
+
+export async function sendScantechLink(options: SendScantechLinkOptions): Promise<void> {
+    const transport = getTransporter();
+    const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'field@scan2plan.com';
+
+    const expiryStr = options.expiresAt.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    });
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
+    <div style="border-bottom: 3px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px;">
+        <h1 style="font-size: 24px; color: #1e40af; margin: 0;">Scan2Plan</h1>
+        <p style="font-size: 12px; color: #64748b; margin: 4px 0 0;">Field Operations</p>
+    </div>
+
+    <p>Hi ${options.techName},</p>
+
+    <p>You've been assigned a field scanning project. Use the link below to access your checklist, upload photos/scans, and submit field notes — <strong>no login required</strong>.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <table style="width: 100%; font-size: 14px;">
+            <tr><td style="color: #64748b; padding: 4px 0;">Project</td><td style="font-weight: 600;">${options.projectName}</td></tr>
+            <tr><td style="color: #64748b; padding: 4px 0;">UPID</td><td style="font-weight: 600; font-family: monospace;">${options.upid}</td></tr>
+            ${options.projectAddress ? `<tr><td style="color: #64748b; padding: 4px 0;">Address</td><td style="font-weight: 600;">${options.projectAddress}</td></tr>` : ''}
+        </table>
+    </div>
+
+    <div style="text-align: center; margin: 32px 0;">
+        <a href="${options.linkUrl}" style="display: inline-block; background: #3b82f6; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 700; font-size: 16px;">
+            Open Field App
+        </a>
+    </div>
+
+    <p style="font-size: 13px; color: #64748b;">
+        This link expires <strong>${expiryStr}</strong>. If you need a new link, contact your project manager.
+    </p>
+
+    <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 32px; font-size: 11px; color: #94a3b8;">
+        Scan2Plan | Field Operations<br>
+        This link was sent to ${options.techName} (${options.to}).
+    </div>
+</body>
+</html>`.trim();
+
+    await transport.sendMail({
+        from: `Scan2Plan Field Ops <${from}>`,
+        to: options.to,
+        subject: `[Scan2Plan] Field Assignment: ${options.projectName} (${options.upid})`,
+        html,
+    });
+}
+
 // ── Client Response Notification ──
 // Notifies the S2PX team when a client accepts a proposal or requests changes.
 

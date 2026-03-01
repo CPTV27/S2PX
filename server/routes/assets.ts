@@ -6,6 +6,7 @@ import { Storage } from '@google-cloud/storage';
 import { db } from '../db.js';
 import { projectAssets, productionProjects } from '../../shared/schema/db.js';
 import { eq, desc } from 'drizzle-orm';
+import { updateSidecarAsync } from '../lib/sidecarWriter.js';
 
 const router = Router();
 
@@ -71,6 +72,9 @@ router.post('/:projectId/assets', async (req: Request, res: Response) => {
                 totalSizeBytes,
             })
             .returning();
+
+        // Update GCS sidecar with new asset link (fire-and-forget)
+        updateSidecarAsync(projectId);
 
         res.status(201).json(asset);
     } catch (error: any) {

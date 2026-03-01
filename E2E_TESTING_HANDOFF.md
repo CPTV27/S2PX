@@ -29,13 +29,13 @@ npm run dev:server   # Express on :5001
 ### Verification Commands
 ```bash
 npm run lint          # tsc --noEmit (should be zero errors)
-npm test              # vitest run (117/117 should pass)
+npm test              # vitest run (138/138 should pass)
 npm run build         # tsc -b && vite build (should succeed)
 ```
 
 ### Existing Automated E2E Tests (Playwright)
 
-There are already 6 Playwright spec files in `e2e/` with mock API interception:
+There are already 7 Playwright spec files in `e2e/` with mock API interception (450 tests total):
 
 ```bash
 # Run all E2E tests (starts dev server automatically)
@@ -51,14 +51,15 @@ npx playwright test --headed
 npx playwright test --ui
 ```
 
-| Spec File | Coverage |
-|-----------|----------|
-| `e2e/navigation.spec.ts` | UI routing, sidebar, header, responsive layout |
-| `e2e/revenue.spec.ts` | 6-tab revenue dashboard data rendering |
-| `e2e/scorecard.spec.ts` | 4-tab scorecard KPI rendering |
-| `e2e/data-integrity.spec.ts` | Cross-tab math verification |
-| `e2e/pm-dashboard.spec.ts` | PM Mission Control field data |
-| `e2e/scantech.spec.ts` | Mobile Scantech field ops |
+| Spec File | Tests | Coverage |
+|-----------|-------|----------|
+| `e2e/navigation.spec.ts` | 37 | UI routing, sidebar, header, responsive layout |
+| `e2e/revenue.spec.ts` | 127 | 6-tab revenue dashboard data rendering |
+| `e2e/scorecard.spec.ts` | 100 | 4-tab scorecard KPI rendering |
+| `e2e/data-integrity.spec.ts` | 61 | Cross-tab math verification |
+| `e2e/pm-dashboard.spec.ts` | 54 | PM Mission Control field data |
+| `e2e/scantech.spec.ts` | 47 | Mobile ScanTech field ops |
+| `e2e/deal-lifecycle.spec.ts` | 24 | Deal lifecycle flow |
 
 **Mock data fixtures:** `e2e/fixtures/mock-data.ts` and `e2e/fixtures/scantech-mock-data.ts`
 
@@ -93,7 +94,7 @@ shared/               Shared between client + server
 ```
 
 ### Database (PostgreSQL via Drizzle ORM)
-Key tables: `users`, `scoping_forms`, `scope_areas`, `quotes`, `proposals`, `production_projects`, `project_assets`, `kb_sections`, `upload_shares`, `qbo_*` (QuickBooks)
+Key tables: `users`, `scoping_forms`, `scope_areas`, `quotes`, `proposals`, `production_projects`, `project_assets`, `kb_sections`, `upload_shares`, `qbo_*` (QuickBooks), `field_uploads`, `scan_checklists`, `scan_checklist_responses`, `scantech_tokens`, `chat_channels`, `team_messages`, `proposal_templates` (25 total)
 
 ### Auth Flow
 - Firebase Google OAuth on the client
@@ -169,6 +170,8 @@ Key tables: `users`, `scoping_forms`, `scope_areas`, `quotes`, `proposals`, `pro
 | `/field/:projectId` | FieldCapture | Field capture (mobile) |
 | `/upload/:token` | UploadPortal | Public upload portal |
 | `/client-portal/:token` | ClientPortal | Public proposal review |
+| `/scantech-link/:token/*` | ScantechPublic | Public field tech link (token-validated) |
+| `/dashboard/settings/proposal-template` | ProposalTemplateSettings | Proposal template editor |
 
 ---
 
@@ -315,13 +318,15 @@ curl -H "Authorization: Bearer <TOKEN>" http://localhost:5001/api/scoping
 
 The shared pricing engine runs in Node.js without auth:
 ```bash
-npm test   # Runs vitest — 117 tests across 3 suites
+npm test   # Runs vitest — 138 tests across 5 suites
 ```
 
 Test files:
-- `shared/engine/__tests__/quoteTotals.test.ts` — 11 tests (total calculations)
 - `shared/engine/__tests__/prefillCascade.test.ts` — 77 tests (49 prefill mappings)
 - `shared/engine/__tests__/shellGenerator.test.ts` — 29 tests (line item generation)
+- `shared/engine/__tests__/shellGenerator.edge.test.ts` — 12 tests (edge cases)
+- `shared/engine/__tests__/quoteTotals.test.ts` — 11 tests (total calculations)
+- `shared/engine/__tests__/quoteTotals.edge.test.ts` — 9 tests (edge cases)
 
 ---
 

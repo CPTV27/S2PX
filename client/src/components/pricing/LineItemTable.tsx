@@ -83,6 +83,10 @@ const categoryLabels: Record<string, string> = {
     travel: 'Travel',
     addOn: 'Add-On',
     custom: 'Custom',
+    // Legacy CPQ categories (from Railway migration)
+    'add-on': 'Add-On',
+    cad: 'CAD',
+    summary: 'Summary',
 };
 
 const categoryColors: Record<string, string> = {
@@ -90,6 +94,10 @@ const categoryColors: Record<string, string> = {
     travel: 'bg-purple-50 text-purple-700 border-purple-200',
     addOn: 'bg-amber-50 text-amber-700 border-amber-200',
     custom: 'bg-slate-50 text-slate-600 border-slate-200',
+    // Legacy CPQ categories
+    'add-on': 'bg-amber-50 text-amber-700 border-amber-200',
+    cad: 'bg-teal-50 text-teal-700 border-teal-200',
+    summary: 'bg-slate-50 text-slate-500 border-slate-200',
 };
 
 export function LineItemTable({ items, onUpdate }: LineItemTableProps) {

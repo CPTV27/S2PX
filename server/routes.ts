@@ -20,6 +20,8 @@ import financialsRoutes from './routes/financials.js';
 import chatRoutes from './routes/chat.js';
 import scantechRoutes from './routes/scantech.js';
 import pmDashboardRoutes from './routes/pm-dashboard.js';
+import pricingConfigRoutes from './routes/pricing-config.js';
+import pricingV2Routes from './routes/pricing-v2.js';
 
 export async function registerRoutes(app: Express) {
     registerHealthRoutes(app);
@@ -29,7 +31,6 @@ export async function registerRoutes(app: Express) {
     app.use('/api/leads', leadRoutes);
     app.use('/api/projects', projectBrowseRoutes);
     app.use('/api/cpq', cpqRoutes);
-    app.use('/api', cpqRoutes); // also mount /api/products
     app.use('/api/quotes', quoteRoutes);
     app.use('/api/proposals', proposalRoutes);
     app.use('/api/qbo', qboRoutes);
@@ -44,4 +45,6 @@ export async function registerRoutes(app: Express) {
     app.use('/api/chat', chatRoutes);
     app.use('/api/scantech', scantechRoutes);
     app.use('/api/pm', pmDashboardRoutes);
+    app.use('/api/pricing-config', pricingConfigRoutes);
+    app.use('/api/pricing-v2', pricingV2Routes);
 }

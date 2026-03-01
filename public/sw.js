@@ -2,10 +2,8 @@
 // Cache-first for static assets, network-first for API calls.
 // Enables offline checklist usage.
 
-const CACHE_NAME = 'scantech-v1';
+const CACHE_NAME = 'scantech-v2';
 const STATIC_ASSETS = [
-    '/',
-    '/scantech',
     '/favicon.svg',
 ];
 
@@ -63,7 +61,25 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets: cache-first
+    // HTML navigation requests: network-first (always get latest SPA shell)
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, clone);
+                    });
+                    return response;
+                })
+                .catch(() => {
+                    return caches.match(request) || caches.match('/');
+                })
+        );
+        return;
+    }
+
+    // Static assets (JS, CSS, images): cache-first
     event.respondWith(
         caches.match(request).then((cached) => {
             if (cached) return cached;

@@ -25,6 +25,7 @@ const ProductionDetail = lazy(() => import('./pages/ProductionDetail').then(m =>
 const FieldCapture = lazy(() => import('./pages/FieldCapture').then(m => ({ default: m.FieldCapture })));
 const Scorecard = lazy(() => import('./pages/Scorecard').then(m => ({ default: m.Scorecard })));
 const ProposalTemplateSettings = lazy(() => import('./pages/ProposalTemplateSettings').then(m => ({ default: m.ProposalTemplateSettings })));
+const PricingVariablesSettings = lazy(() => import('./pages/PricingVariablesSettings').then(m => ({ default: m.PricingVariablesSettings })));
 const UploadPortal = lazy(() => import('./pages/UploadPortal').then(m => ({ default: m.UploadPortal })));
 const ClientPortal = lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })));
 const ScantechList = lazy(() => import('./pages/scantech/ScantechList').then(m => ({ default: m.ScantechList })));
@@ -34,6 +35,7 @@ const ChecklistTab = lazy(() => import('./components/scantech/ChecklistTab').the
 const UploadTab = lazy(() => import('./components/scantech/UploadTab').then(m => ({ default: m.UploadTab })));
 const ScopingTab = lazy(() => import('./components/scantech/ScopingTab').then(m => ({ default: m.ScopingTab })));
 const NotesTab = lazy(() => import('./components/scantech/NotesTab').then(m => ({ default: m.NotesTab })));
+const ScantechPublic = lazy(() => import('./pages/ScantechPublic').then(m => ({ default: m.ScantechPublic })));
 
 export default function App() {
     return (
@@ -47,10 +49,13 @@ export default function App() {
                             <Route path="/upload/:token" element={<UploadPortal />} />
                             {/* Client Portal — public proposal review page (token-validated) */}
                             <Route path="/client-portal/:token" element={<ClientPortal />} />
+                            {/* Scantech Public Link — token-validated, no Firebase auth */}
+                            <Route path="/scantech-link/:token/*" element={<ScantechPublic />} />
+                            {/* Dashboard — role-guarded (scantech role redirects to /scantech) */}
                             <Route
                                 path="/dashboard"
                                 element={
-                                    <RequireAuth>
+                                    <RequireAuth allowedRoles={['ceo', 'admin', 'user', 'viewer']}>
                                         <TourProvider>
                                             <DashboardLayout />
                                         </TourProvider>
@@ -65,6 +70,7 @@ export default function App() {
                                 <Route path="knowledge" element={<KnowledgeBase />} />
                                 <Route path="settings" element={<Settings />} />
                                 <Route path="settings/proposal-template" element={<ProposalTemplateSettings />} />
+                                <Route path="settings/pricing-variables" element={<PricingVariablesSettings />} />
                                 <Route path="storage" element={<StorageBrowser />} />
                                 <Route path="scoping" element={<ScopingList />} />
                                 <Route path="scoping/new" element={<ScopingForm />} />
@@ -74,7 +80,7 @@ export default function App() {
                                 <Route path="production" element={<ProductionPipeline />} />
                                 <Route path="production/:id" element={<ProductionDetail />} />
                             </Route>
-                            {/* Scantech — mobile field operations hub (no sidebar) */}
+                            {/* Scantech — mobile field operations hub (all authenticated roles) */}
                             <Route
                                 path="/scantech"
                                 element={

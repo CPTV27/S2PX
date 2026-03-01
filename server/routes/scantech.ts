@@ -3,6 +3,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { Storage } from '@google-cloud/storage';
+import crypto from 'crypto';
 import { db } from '../db.js';
 import {
     productionProjects,
@@ -12,9 +13,13 @@ import {
     scanChecklists,
     scanChecklistResponses,
     users,
+    scantechTokens,
 } from '../../shared/schema/db.js';
 import { eq, and, inArray, sql, desc } from 'drizzle-orm';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { requireRole } from '../middleware/requireRole.js';
+import { sendScantechLink } from '../lib/emailSender.js';
+import { updateSidecarAsync } from '../lib/sidecarWriter.js';
 
 const router = Router();
 const ACTIVE_BUCKET = process.env.GCS_ACTIVE_BUCKET || 's2p-active-projects';
@@ -458,6 +463,9 @@ router.post('/projects/:id/upload/confirm', async (req: Request, res: Response) 
             })
             .returning();
 
+        // Update GCS sidecar to reflect new file (fire-and-forget)
+        updateSidecarAsync(projectId);
+
         res.status(201).json(upload);
     } catch (error: any) {
         console.error('Scantech upload confirm error:', error);
@@ -660,6 +668,174 @@ Be concise, practical, and field-focused. The tech is on-site with limited time.
     } catch (error: any) {
         console.error('Scantech AI error:', error);
         res.status(500).json({ error: error.message || 'AI assistant failed' });
+    }
+});
+
+// ═══════════════════════════════════════════
+// Route 9: POST /tokens — Create a scantech token for a project
+// ═══════════════════════════════════════════
+
+router.post('/tokens', requireRole('ceo', 'admin'), async (req: Request, res: Response) => {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const { productionProjectId, techName, techEmail, techPhone, expiresInDays } = req.body;
+
+        if (!productionProjectId || !techName) {
+            return res.status(400).json({ error: 'productionProjectId and techName are required' });
+        }
+
+        // Verify project exists
+        const [project] = await db
+            .select({ id: productionProjects.id })
+            .from(productionProjects)
+            .where(eq(productionProjects.id, productionProjectId));
+
+        if (!project) return res.status(404).json({ error: 'Project not found' });
+
+        const token = crypto.randomBytes(24).toString('base64url');
+        const days = expiresInDays || 7;
+        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+        const [created] = await db
+            .insert(scantechTokens)
+            .values({
+                productionProjectId,
+                token,
+                techName,
+                techEmail: techEmail || null,
+                techPhone: techPhone || null,
+                createdBy: authReq.user?.id ?? null,
+                expiresAt,
+            })
+            .returning();
+
+        res.status(201).json({
+            ...created,
+            expiresAt: created.expiresAt.toISOString(),
+            createdAt: created.createdAt.toISOString(),
+            updatedAt: created.updatedAt.toISOString(),
+            lastAccessedAt: created.lastAccessedAt?.toISOString() || null,
+        });
+    } catch (error: any) {
+        console.error('Create scantech token error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create token' });
+    }
+});
+
+// ═══════════════════════════════════════════
+// Route 10: GET /tokens — List tokens for a project
+// ═══════════════════════════════════════════
+
+router.get('/tokens', async (req: Request, res: Response) => {
+    try {
+        const projectId = parseInt(req.query.projectId as string, 10);
+        if (isNaN(projectId)) return res.status(400).json({ error: 'projectId query param is required' });
+
+        const tokens = await db
+            .select({
+                id: scantechTokens.id,
+                productionProjectId: scantechTokens.productionProjectId,
+                token: scantechTokens.token,
+                techName: scantechTokens.techName,
+                techEmail: scantechTokens.techEmail,
+                techPhone: scantechTokens.techPhone,
+                expiresAt: scantechTokens.expiresAt,
+                isActive: scantechTokens.isActive,
+                lastAccessedAt: scantechTokens.lastAccessedAt,
+                accessCount: scantechTokens.accessCount,
+                createdAt: scantechTokens.createdAt,
+                createdByName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`,
+            })
+            .from(scantechTokens)
+            .leftJoin(users, eq(scantechTokens.createdBy, users.id))
+            .where(eq(scantechTokens.productionProjectId, projectId))
+            .orderBy(desc(scantechTokens.createdAt));
+
+        res.json(tokens.map(t => ({
+            ...t,
+            expiresAt: t.expiresAt.toISOString(),
+            createdAt: t.createdAt.toISOString(),
+            lastAccessedAt: t.lastAccessedAt?.toISOString() || null,
+        })));
+    } catch (error: any) {
+        console.error('List scantech tokens error:', error);
+        res.status(500).json({ error: error.message || 'Failed to list tokens' });
+    }
+});
+
+// ═══════════════════════════════════════════
+// Route 11: DELETE /tokens/:id — Revoke a token
+// ═══════════════════════════════════════════
+
+router.delete('/tokens/:id', requireRole('ceo', 'admin'), async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ error: 'Invalid token ID' });
+
+        const [updated] = await db
+            .update(scantechTokens)
+            .set({ isActive: false, updatedAt: new Date() })
+            .where(eq(scantechTokens.id, id))
+            .returning();
+
+        if (!updated) return res.status(404).json({ error: 'Token not found' });
+
+        res.json({ message: 'Token revoked', id: updated.id });
+    } catch (error: any) {
+        console.error('Revoke scantech token error:', error);
+        res.status(500).json({ error: error.message || 'Failed to revoke token' });
+    }
+});
+
+// ═══════════════════════════════════════════
+// Route 12: POST /tokens/:id/send — Send token via email
+// ═══════════════════════════════════════════
+
+router.post('/tokens/:id/send', requireRole('ceo', 'admin'), async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return res.status(400).json({ error: 'Invalid token ID' });
+
+        const [tokenRecord] = await db
+            .select()
+            .from(scantechTokens)
+            .where(eq(scantechTokens.id, id));
+
+        if (!tokenRecord) return res.status(404).json({ error: 'Token not found' });
+        if (!tokenRecord.isActive) return res.status(410).json({ error: 'Token has been revoked' });
+        if (!tokenRecord.techEmail) return res.status(400).json({ error: 'No email address on this token' });
+
+        // Load project info for the email
+        const [project] = await db
+            .select({
+                upid: productionProjects.upid,
+                projectName: scopingForms.projectName,
+                clientCompany: scopingForms.clientCompany,
+                projectAddress: scopingForms.projectAddress,
+            })
+            .from(productionProjects)
+            .innerJoin(scopingForms, eq(productionProjects.scopingFormId, scopingForms.id))
+            .where(eq(productionProjects.id, tokenRecord.productionProjectId));
+
+        if (!project) return res.status(404).json({ error: 'Project not found' });
+
+        const baseUrl = process.env.APP_URL || 'https://s2px.web.app';
+        const linkUrl = `${baseUrl}/scantech-link/${tokenRecord.token}`;
+
+        await sendScantechLink({
+            to: tokenRecord.techEmail,
+            techName: tokenRecord.techName,
+            projectName: project.projectName || project.clientCompany || project.upid,
+            projectAddress: project.projectAddress || '',
+            upid: project.upid,
+            linkUrl,
+            expiresAt: tokenRecord.expiresAt,
+        });
+
+        res.json({ message: 'Email sent', to: tokenRecord.techEmail });
+    } catch (error: any) {
+        console.error('Send scantech link error:', error);
+        res.status(500).json({ error: error.message || 'Failed to send email' });
     }
 });
 

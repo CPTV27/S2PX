@@ -4,6 +4,7 @@
 import { Router, type Request, type Response } from 'express';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { requireRole } from '../middleware/requireRole.js';
 import type {
     ActualRevenueData,
     PnlSummary,
@@ -14,6 +15,9 @@ import type {
 } from '../../shared/types/financials.js';
 
 const router = Router();
+
+// All financials routes require CEO role only
+router.use(requireRole('ceo'));
 
 // ── GET /api/financials/revenue-actual ──
 router.get('/revenue-actual', async (req: Request, res: Response) => {

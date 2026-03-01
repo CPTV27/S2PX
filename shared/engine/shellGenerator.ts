@@ -1,6 +1,6 @@
 // ── Line Item Shell Generator ──
 // Pure function: takes a scoping form + areas → generates line item shells.
-// 13 rules (6 per-area, 7 project-level). CEO fills prices later.
+// 15 rules (8 per-area, 7 project-level). CEO fills prices later.
 
 import type { LineItemShell } from '../types/lineItem';
 
@@ -19,6 +19,8 @@ export interface ScopeAreaInput {
     cadDeliverable: string;
     act?: { enabled: boolean; sqft?: number } | null;
     belowFloor?: { enabled: boolean; sqft?: number } | null;
+    site?: { enabled: boolean; sqft?: number } | null;
+    matterport?: { enabled: boolean; sqft?: number } | null;
     customLineItems?: { description: string; amount: number }[] | null;
 }
 
@@ -186,6 +188,44 @@ function generateAreaShells(area: ScopeAreaInput): LineItemShell[] {
         });
     }
 
+    // Rule 7: Site / Civil line — if site.enabled
+    if (area.site?.enabled) {
+        const sqft = area.site.sqft || area.squareFootage;
+        shells.push({
+            id: nextId(),
+            areaId,
+            areaName,
+            category: 'modeling',
+            discipline: 'site',
+            description: `Site / Civil — ${area.areaType} — ${formatSF(sqft)} SF`,
+            buildingType: area.areaType,
+            squareFeet: sqft,
+            lod: area.lod,
+            scope: area.projectScope,
+            upteamCost: null,
+            clientPrice: null,
+        });
+    }
+
+    // Rule 8: Matterport line — if matterport.enabled
+    if (area.matterport?.enabled) {
+        const sqft = area.matterport.sqft || area.squareFootage;
+        shells.push({
+            id: nextId(),
+            areaId,
+            areaName,
+            category: 'addOn',
+            discipline: 'matterport',
+            description: `Matterport Scan — ${area.areaType} — ${formatSF(sqft)} SF`,
+            buildingType: area.areaType,
+            squareFeet: sqft,
+            lod: area.lod,
+            scope: area.projectScope,
+            upteamCost: null,
+            clientPrice: null,
+        });
+    }
+
     return shells;
 }
 
@@ -300,10 +340,11 @@ function generateProjectShells(form: ScopingFormInput, areaShells: LineItemShell
  * Generate line item shells from a completed scoping form.
  * All prices are null — the CEO fills them in Phase 3.
  *
- * 13 rules:
- *   Per area: 1) Architecture, 2) Structural, 3) MEPF, 4) CAD, 5) ACT, 6) Below Floor
- *   Project:  7) Travel, 8) Georeferencing, 9) Expedited, 10) Landscape,
- *             11) Scan & Reg, 12) Custom line items
+ * 15 rules:
+ *   Per area: 1) Architecture, 2) Structural, 3) MEPF, 4) CAD, 5) ACT,
+ *             6) Below Floor, 7) Site/Civil, 8) Matterport
+ *   Project:  9) Travel, 10) Georeferencing, 11) Expedited, 12) Landscape,
+ *             13) Scan & Reg, 14) Custom line items
  */
 export function generateLineItemShells(form: ScopingFormInput): LineItemShell[] {
     resetIdCounter();

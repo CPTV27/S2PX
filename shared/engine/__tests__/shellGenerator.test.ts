@@ -28,6 +28,8 @@ function baseArea(overrides?: Record<string, unknown>) {
         mepf: null,
         act: null,
         belowFloor: null,
+        site: null,
+        matterport: null,
         customLineItems: null,
         ...overrides,
     };
@@ -162,6 +164,66 @@ describe('Shell Generator — Per-Area Rules', () => {
         });
         const shells = generateLineItemShells(form);
         expect(shells.filter(s => s.discipline === 'below-floor')).toHaveLength(0);
+    });
+
+    it('Rule 7: generates Site / Civil line when enabled', () => {
+        const form = baseForm({
+            areas: [baseArea({ site: { enabled: true, sqft: 12000 } })],
+        });
+        const shells = generateLineItemShells(form);
+        const siteLines = shells.filter(s => s.discipline === 'site');
+
+        expect(siteLines).toHaveLength(1);
+        expect(siteLines[0].description).toContain('Site / Civil');
+        expect(siteLines[0].squareFeet).toBe(12000);
+        expect(siteLines[0].category).toBe('modeling');
+    });
+
+    it('Rule 7: no Site line when disabled', () => {
+        const form = baseForm({
+            areas: [baseArea({ site: { enabled: false } })],
+        });
+        const shells = generateLineItemShells(form);
+        expect(shells.filter(s => s.discipline === 'site')).toHaveLength(0);
+    });
+
+    it('Rule 7: Site uses area sqft when no override', () => {
+        const form = baseForm({
+            areas: [baseArea({ site: { enabled: true } })],
+        });
+        const shells = generateLineItemShells(form);
+        const siteLine = shells.find(s => s.discipline === 'site');
+        expect(siteLine?.squareFeet).toBe(25000);
+    });
+
+    it('Rule 8: generates Matterport line when enabled', () => {
+        const form = baseForm({
+            areas: [baseArea({ matterport: { enabled: true, sqft: 8000 } })],
+        });
+        const shells = generateLineItemShells(form);
+        const mpLines = shells.filter(s => s.discipline === 'matterport');
+
+        expect(mpLines).toHaveLength(1);
+        expect(mpLines[0].description).toContain('Matterport Scan');
+        expect(mpLines[0].squareFeet).toBe(8000);
+        expect(mpLines[0].category).toBe('addOn');
+    });
+
+    it('Rule 8: no Matterport line when disabled', () => {
+        const form = baseForm({
+            areas: [baseArea({ matterport: { enabled: false } })],
+        });
+        const shells = generateLineItemShells(form);
+        expect(shells.filter(s => s.discipline === 'matterport')).toHaveLength(0);
+    });
+
+    it('Rule 8: Matterport uses area sqft when no override', () => {
+        const form = baseForm({
+            areas: [baseArea({ matterport: { enabled: true } })],
+        });
+        const shells = generateLineItemShells(form);
+        const mpLine = shells.find(s => s.discipline === 'matterport');
+        expect(mpLine?.squareFeet).toBe(25000);
     });
 });
 
