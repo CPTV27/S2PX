@@ -197,30 +197,30 @@ export function Pipeline() {
     }
 
     return (
-        <div className="flex flex-col" style={{ height: 'calc(100vh - 8rem)' }}>
+        <div className="flex w-full flex-col min-h-0 min-w-0 overflow-hidden" style={{ height: 'calc(100vh - 8rem)' }}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                <div>
+            <div className="mb-3 flex w-full flex-shrink-0 min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                     <h2 className="text-xl font-bold text-s2p-fg">Pipeline</h2>
                     <p className="text-xs text-s2p-muted mt-0.5">
                         {leads.length} leads · {formatCurrency(leads.reduce((s, l) => s + (l.estimatedValue || 0), 0))} total value
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                     {/* Search */}
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-s2p-muted" />
                         <input
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Search leads..."
-                            className="bg-white border border-s2p-border rounded-lg pl-8 pr-3 py-1.5 text-xs w-48 focus:outline-none focus:border-s2p-primary focus:ring-1 focus:ring-s2p-primary/20 transition-all"
+                            className="w-full max-w-full rounded-lg border border-s2p-border bg-white py-1.5 pl-8 pr-3 text-xs transition-all focus:outline-none focus:border-s2p-primary focus:ring-1 focus:ring-s2p-primary/20 sm:w-48"
                         />
                     </div>
                     <button
                         onClick={() => navigate('/dashboard/scoping/new')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-s2p-primary text-white rounded-lg font-medium text-xs hover:bg-s2p-accent transition-colors shadow-sm"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-s2p-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-s2p-accent sm:w-auto whitespace-nowrap"
                     >
                         <Plus size={14} />
                         New Opportunity
@@ -229,8 +229,8 @@ export function Pipeline() {
             </div>
 
             {/* Kanban Board */}
-            <div data-tour="pipeline-board" className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
-                <div className="flex gap-3 h-full min-w-max pb-2">
+            <div data-tour="pipeline-board" className="flex-1 w-full min-w-0 min-h-0 overflow-x-auto overflow-y-hidden xl:overflow-x-hidden">
+                <div className="flex h-full min-w-max gap-3 pb-2 xl:min-w-0 xl:grid xl:grid-cols-8">
                     {KANBAN_STAGES.map(stage => {
                         const stageLeads = leadsByStage(stage.id);
                         const count = stageCount(stage.id);
@@ -240,7 +240,7 @@ export function Pipeline() {
                         return (
                             <div
                                 key={stage.id}
-                                className="w-72 flex-shrink-0 flex flex-col h-full"
+                                className="w-72 flex-shrink-0 flex flex-col h-full xl:w-auto xl:min-w-0"
                                 onDragOver={e => handleDragOver(e, stage.id)}
                                 onDragLeave={handleDragLeave}
                                 onDrop={e => handleDrop(e, stage.id)}
@@ -251,7 +251,7 @@ export function Pipeline() {
                                     isOver && 'border-blue-300',
                                 )}>
                                     <div className={cn('w-2 h-2 rounded-full', stageDotMap[stage.color])} />
-                                    <span className="text-xs font-semibold text-slate-700 flex-1">{stage.label}</span>
+                                    <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">{stage.label}</span>
                                     <span className={cn(
                                         'text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center',
                                         stageBadgeMap[stage.color],

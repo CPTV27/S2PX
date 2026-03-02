@@ -130,9 +130,11 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export function useScopingForm(formId?: number) {
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
     const [serverForm, setServerForm] = useState<ScopingFormData | null>(null);
+    const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
     const [loading, setLoading] = useState(!!formId);
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const isCreatingRef = useRef(false);
+    const saveSnapshotRef = useRef<string>('');
 
     const form = useForm<ScopingFormValues>({
         resolver: zodResolver(scopingFormSchema),
@@ -192,6 +194,7 @@ export function useScopingForm(formId?: number) {
     const { fields: areaFields, append: appendArea, remove: removeArea } = useFieldArray({
         control: form.control,
         name: 'areas',
+        keyName: 'fieldKey',
     });
 
     // Load existing form
@@ -204,8 +207,17 @@ export function useScopingForm(formId?: number) {
         fetchScopingForm(formId)
             .then((data) => {
                 setServerForm(data);
-                const { areas, ...rest } = data;
-                form.reset({
+                const {
+                    areas,
+                    id: _id,
+                    upid: _upid,
+                    status: _status,
+                    createdAt: _createdAt,
+                    updatedAt: _updatedAt,
+                    createdBy: _createdBy,
+                    ...rest
+                } = data as any;
+                const resetValues = {
                     ...rest,
                     areas: areas || [],
                     numberOfFloors: rest.numberOfFloors || 1,
@@ -216,7 +228,11 @@ export function useScopingForm(formId?: number) {
                     basementAttic: rest.basementAttic || [],
                     scopingDocsUrls: rest.scopingDocsUrls || [],
                     marketingInfluence: rest.marketingInfluence || [],
-                } as ScopingFormValues);
+                } as ScopingFormValues;
+
+                form.reset(resetValues);
+                saveSnapshotRef.current = JSON.stringify(resetValues);
+                setLastSavedAt(data.updatedAt ?? null);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
@@ -225,26 +241,65 @@ export function useScopingForm(formId?: number) {
     // Autosave: 2-second debounce on dirty fields
     const autosave = useCallback(async () => {
         if (!serverForm?.id) return;
-        const dirtyFields = form.formState.dirtyFields;
-        if (Object.keys(dirtyFields).length === 0) return;
-
-        // Build partial payload from dirty fields only
         const values = form.getValues();
-        const payload: Record<string, any> = {};
-        for (const key of Object.keys(dirtyFields)) {
-            if (key === 'areas') continue; // Areas saved separately
-            payload[key] = (values as any)[key];
+        const snapshot = JSON.stringify(values);
+        if (snapshot === saveSnapshotRef.current) {
+            return;
         }
 
-        if (Object.keys(payload).length === 0) return;
+        const areaUpdates: Promise<unknown>[] = [];
+        for (let index = 0; index < (values.areas?.length || 0); index++) {
+            const area = values.areas[index];
+            if (!area?.id) continue; // Unsaved areas are created via addArea() path
+
+            areaUpdates.push(updateScopeArea(serverForm.id, area.id, {
+                areaType: area.areaType,
+                areaName: area.areaName,
+                squareFootage: area.squareFootage,
+                projectScope: area.projectScope,
+                lod: area.lod,
+                mixedInteriorLod: area.mixedInteriorLod,
+                mixedExteriorLod: area.mixedExteriorLod,
+                structural: area.structural,
+                mepf: area.mepf,
+                cadDeliverable: area.cadDeliverable,
+                act: area.act,
+                belowFloor: area.belowFloor,
+                site: area.site,
+                matterport: area.matterport,
+                customLineItems: area.customLineItems,
+                sortOrder: area.sortOrder ?? index,
+            }));
+        }
+
+        const {
+            areas: _areas,
+            id: _id,
+            upid: _upid,
+            status: _status,
+            createdAt: _createdAt,
+            updatedAt: _updatedAt,
+            createdBy: _createdBy,
+            ...payload
+        } = values as any;
 
         setSaveStatus('saving');
         try {
-            const updated = await updateScopingForm(serverForm.id, payload);
-            setServerForm(prev => prev ? { ...prev, ...updated } : updated);
+            const writes: Promise<unknown>[] = [];
+            writes.push(
+                updateScopingForm(serverForm.id, payload).then((updated) => {
+                    setServerForm(prev => prev ? { ...prev, ...updated } : updated);
+                }),
+            );
+
+            if (areaUpdates.length > 0) {
+                writes.push(Promise.all(areaUpdates));
+            }
+
+            await Promise.all(writes);
+            saveSnapshotRef.current = snapshot;
             setSaveStatus('saved');
-            // Reset dirty state for saved fields
-            form.reset(form.getValues(), { keepValues: true });
+            setLastSavedAt(new Date().toISOString());
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (err) {
             console.error('Autosave failed:', err);
@@ -270,13 +325,13 @@ export function useScopingForm(formId?: number) {
     // Reconnect: save dirty fields on window focus
     useEffect(() => {
         const handleFocus = () => {
-            if (serverForm?.id && Object.keys(form.formState.dirtyFields).length > 0) {
+            if (serverForm?.id) {
                 autosave();
             }
         };
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
-    }, [serverForm?.id, autosave, form]);
+    }, [serverForm?.id, autosave]);
 
     // Create form (initial save)
     const createForm = useCallback(async (values: ScopingFormValues) => {
@@ -289,6 +344,7 @@ export function useScopingForm(formId?: number) {
             const created = await createScopingForm(formData);
             setServerForm(created);
             setSaveStatus('saved');
+            setLastSavedAt(new Date().toISOString());
             setTimeout(() => setSaveStatus('idle'), 2000);
             return created;
         } catch (err) {
@@ -341,6 +397,7 @@ export function useScopingForm(formId?: number) {
         removeAreaAt,
         cloneArea,
         saveStatus,
+        lastSavedAt,
         serverForm,
         loading,
         createForm,

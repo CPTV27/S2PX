@@ -17,4 +17,11 @@ export const pool = new Pool({
     ssl: isLocal ? false : { rejectUnauthorized: false },
 });
 
+// Ensure unqualified table names resolve in environments where search_path is empty.
+pool.on('connect', (client) => {
+    client.query('SET search_path TO public').catch((error: Error) => {
+        console.error('[db] failed to set search_path:', error.message);
+    });
+});
+
 export const db = drizzle(pool, { schema: { ...schema, ...pricingSchema } });

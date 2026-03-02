@@ -4,7 +4,102 @@ import { scopingForms, scopeAreas } from '../../shared/schema/db.js';
 import { eq, desc, sql } from 'drizzle-orm';
 
 // UPID generator: S2P-[SEQ]-[YEAR]
+let upidSequenceReady = false;
+const OPTIONAL_NUMERIC_FIELDS = new Set([
+    'projectLat',
+    'projectLng',
+    'buildingFootprintSqft',
+    'estSfBasementAttic',
+    'landscapeAcres',
+    'customTravelCost',
+    'mileageRate',
+    'scanDayFeeOverride',
+    'estScanDays',
+    'techsPlanned',
+    'mOverride',
+    'whaleScanCost',
+    'whaleModelCost',
+    'assumedSavingsM',
+]);
+const NON_EDITABLE_SCOPING_FIELDS = new Set([
+    'id',
+    'upid',
+    'status',
+    'createdAt',
+    'updatedAt',
+    'createdBy',
+]);
+
+function normalizeScopingNumericFields(payload: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = { ...payload };
+
+    for (const field of OPTIONAL_NUMERIC_FIELDS) {
+        if (!(field in normalized)) continue;
+
+        const value = normalized[field];
+        if (value === '' || value === null || value === undefined) {
+            normalized[field] = null;
+            continue;
+        }
+
+        if (typeof value === 'number') {
+            normalized[field] = Number.isFinite(value) ? value : null;
+            continue;
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                normalized[field] = null;
+                continue;
+            }
+            const parsed = Number(trimmed);
+            normalized[field] = Number.isFinite(parsed) ? parsed : null;
+            continue;
+        }
+
+        normalized[field] = null;
+    }
+
+    return normalized;
+}
+
+function sanitizeScopingPayload(payload: Record<string, any>): Record<string, any> {
+    const sanitized: Record<string, any> = {};
+    for (const [key, value] of Object.entries(payload)) {
+        if (NON_EDITABLE_SCOPING_FIELDS.has(key)) continue;
+        sanitized[key] = value;
+    }
+    return normalizeScopingNumericFields(sanitized);
+}
+
+async function ensureUpidSequence(): Promise<void> {
+    if (upidSequenceReady) return;
+
+    // Self-heal cloned/legacy databases that are missing the custom UPID sequence.
+    await db.execute(sql`CREATE SEQUENCE IF NOT EXISTS upid_seq`);
+
+    const maxSeqResult = await db.execute(sql`
+        SELECT COALESCE(
+            MAX((regexp_match(upid, '^S2P-([0-9]+)-[0-9]{4}$'))[1]::bigint),
+            0
+        ) AS max_seq
+        FROM scoping_forms
+    `);
+    const lastSeqResult = await db.execute(sql`SELECT last_value FROM upid_seq`);
+
+    const maxSeq = Number((maxSeqResult.rows[0] as { max_seq: string | number }).max_seq ?? 0);
+    const lastValue = Number((lastSeqResult.rows[0] as { last_value: string | number }).last_value ?? 1);
+
+    if (maxSeq > lastValue) {
+        await db.execute(sql`SELECT setval('upid_seq', ${maxSeq}, true)`);
+    }
+
+    upidSequenceReady = true;
+}
+
 async function generateUpid(): Promise<string> {
+    await ensureUpidSequence();
     const result = await db.execute(sql`SELECT nextval('upid_seq') as seq`);
     const seq = (result.rows[0] as { seq: string }).seq;
     const year = new Date().getFullYear();
@@ -17,10 +112,11 @@ export function registerScopingRoutes(app: Express) {
         try {
             const upid = await generateUpid();
             const { areas, ...formData } = req.body;
+            const normalizedFormData = sanitizeScopingPayload(formData);
 
             const [form] = await db
                 .insert(scopingForms)
-                .values({ ...formData, upid })
+                .values({ ...normalizedFormData, upid })
                 .returning();
 
             // Insert areas if provided
@@ -115,10 +211,11 @@ export function registerScopingRoutes(app: Express) {
             }
 
             const { areas, ...formData } = req.body;
+            const normalizedFormData = sanitizeScopingPayload(formData);
 
             const [updated] = await db
                 .update(scopingForms)
-                .set({ ...formData, updatedAt: new Date() })
+                .set({ ...normalizedFormData, updatedAt: new Date() })
                 .where(eq(scopingForms.id, id))
                 .returning();
 

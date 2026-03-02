@@ -5,7 +5,7 @@ import type { FieldArrayWithId } from 'react-hook-form';
 import type { ScopingFormValues } from '@/hooks/useScopingForm';
 
 interface SectionDProps {
-    areaFields: FieldArrayWithId<ScopingFormValues, 'areas', 'id'>[];
+    areaFields: FieldArrayWithId<ScopingFormValues, 'areas', 'fieldKey'>[];
     addArea: () => void;
     removeAreaAt: (index: number) => void;
     cloneArea: (index: number) => void;
@@ -28,7 +28,7 @@ export function SectionD({ areaFields, addArea, removeAreaAt, cloneArea }: Secti
 
                 {areaFields.map((field, index) => (
                     <ScopeAreaBlock
-                        key={field.id}
+                        key={field.fieldKey}
                         index={index}
                         onRemove={() => removeAreaAt(index)}
                         onClone={() => cloneArea(index)}

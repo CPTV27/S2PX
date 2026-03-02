@@ -82,7 +82,7 @@ export function DashboardLayout() {
         : displayName.slice(0, 2).toUpperCase();
 
     return (
-        <div className="min-h-screen bg-s2p-bg text-s2p-fg flex">
+        <div className="flex min-h-screen max-w-full overflow-x-hidden bg-s2p-bg text-s2p-fg">
             {/* Sidebar */}
             <motion.aside
                 initial={{ x: -100, opacity: 0 }}
@@ -159,9 +159,9 @@ export function DashboardLayout() {
             </motion.aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-20 lg:ml-64 min-h-screen">
+            <main className="ml-20 min-h-screen min-w-0 flex-1 overflow-x-hidden lg:ml-64">
                 {/* Header */}
-                <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-s2p-border px-8 py-4 flex justify-between items-center">
+                <header className="sticky top-0 z-40 flex min-w-0 items-center justify-between border-b border-s2p-border bg-white/80 px-8 py-4 backdrop-blur-md">
                     <div>
                         <h2 className="text-xs font-mono text-s2p-muted uppercase tracking-widest">Scan2Plan OS X</h2>
                         <h1 className="text-xl font-semibold text-s2p-fg">Operations Center</h1>
@@ -192,7 +192,7 @@ export function DashboardLayout() {
                 </header>
 
                 {/* Page Content */}
-                <div className="p-8">
+                <div className="min-w-0 overflow-x-hidden p-8">
                     <Outlet />
                 </div>
             </main>

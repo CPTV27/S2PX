@@ -10,20 +10,49 @@ interface ScopeAreaBlockProps {
     onClone: () => void;
 }
 
-function ToggleSqft({ name, label }: { name: string; label: string }) {
-    const { register, watch } = useFormContext<ScopingFormValues>();
+function ToggleSqft({ name, label, defaultSqft }: { name: string; label: string; defaultSqft: number }) {
+    const { register, watch, control, getValues, setValue } = useFormContext<ScopingFormValues>();
     const enabled = watch(`${name}.enabled` as any);
+
+    const applyDefaultSqftIfNeeded = () => {
+        const currentSqft = getValues(`${name}.sqft` as any);
+        const numericCurrentSqft = typeof currentSqft === 'number'
+            ? currentSqft
+            : Number(currentSqft ?? 0);
+        if (!Number.isFinite(numericCurrentSqft) || numericCurrentSqft <= 0) {
+            if (Number.isFinite(defaultSqft) && defaultSqft > 0) {
+                setValue(`${name}.sqft` as any, defaultSqft, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                });
+            }
+        }
+    };
 
     return (
         <div className="space-y-1.5">
-            <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                    type="checkbox"
-                    {...register(`${name}.enabled` as any)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-slate-700">{label}</span>
-            </label>
+            <Controller
+                control={control}
+                name={`${name}.enabled` as any}
+                render={({ field }) => (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={!!field.value}
+                            onChange={(e) => {
+                                const checked = e.target.checked;
+                                field.onChange(checked);
+                                if (checked) {
+                                    applyDefaultSqftIfNeeded();
+                                }
+                            }}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-slate-700">{label}</span>
+                    </label>
+                )}
+            />
             {enabled && (
                 <input
                     {...register(`${name}.sqft` as any)}
@@ -44,6 +73,7 @@ export function ScopeAreaBlock({ index, onRemove, onClone }: ScopeAreaBlockProps
     const projectScope = watch(`${prefix}.projectScope`);
     const areaType = watch(`${prefix}.areaType`);
     const areaName = watch(`${prefix}.areaName`);
+    const areaSqftValue = Number(watch(`${prefix}.squareFootage`) ?? 0);
 
     const displayName = areaName || areaType || `Area ${index + 1}`;
 
@@ -128,12 +158,12 @@ export function ScopeAreaBlock({ index, onRemove, onClone }: ScopeAreaBlockProps
 
             {/* Row 3: Discipline toggles */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <ToggleSqft name={`${prefix}.structural`} label="Structural" />
-                <ToggleSqft name={`${prefix}.mepf`} label="MEPF" />
-                <ToggleSqft name={`${prefix}.act`} label="ACT (Above Ceiling)" />
-                <ToggleSqft name={`${prefix}.belowFloor`} label="Below Floor" />
-                <ToggleSqft name={`${prefix}.site`} label="Site / Civil" />
-                <ToggleSqft name={`${prefix}.matterport`} label="Matterport" />
+                <ToggleSqft name={`${prefix}.structural`} label="Structural" defaultSqft={areaSqftValue} />
+                <ToggleSqft name={`${prefix}.mepf`} label="MEPF" defaultSqft={areaSqftValue} />
+                <ToggleSqft name={`${prefix}.act`} label="ACT (Above Ceiling)" defaultSqft={areaSqftValue} />
+                <ToggleSqft name={`${prefix}.belowFloor`} label="Below Floor" defaultSqft={areaSqftValue} />
+                <ToggleSqft name={`${prefix}.site`} label="Site / Civil" defaultSqft={areaSqftValue} />
+                <ToggleSqft name={`${prefix}.matterport`} label="Matterport" defaultSqft={areaSqftValue} />
             </div>
         </div>
     );

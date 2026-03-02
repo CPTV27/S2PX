@@ -18,8 +18,10 @@ import { SectionN } from '@/components/scoping/SectionN';
 import { SectionO } from '@/components/scoping/SectionO';
 import { cn } from '@/lib/utils';
 
-function SaveIndicator({ status }: { status: SaveStatus }) {
-    if (status === 'idle') return null;
+function SaveIndicator({ status, lastSavedAt }: { status: SaveStatus; lastSavedAt?: string | null }) {
+    const lastSavedText = lastSavedAt
+        ? new Date(lastSavedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : null;
 
     return (
         <div className={cn(
@@ -27,10 +29,12 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
             status === 'saving' && 'text-blue-500',
             status === 'saved' && 'text-green-500',
             status === 'error' && 'text-red-500',
+            status === 'idle' && 'text-slate-400',
         )}>
             {status === 'saving' && <><Loader2 size={12} className="animate-spin" /> Saving...</>}
-            {status === 'saved' && <><CheckCircle2 size={12} /> Saved</>}
+            {status === 'saved' && <><CheckCircle2 size={12} /> Saved{lastSavedText ? ` ${lastSavedText}` : ''}</>}
             {status === 'error' && <><AlertCircle size={12} /> Save failed</>}
+            {status === 'idle' && <>Autosave on{lastSavedText ? ` · last ${lastSavedText}` : ''}</>}
         </div>
     );
 }
@@ -47,6 +51,7 @@ export function ScopingForm() {
         removeAreaAt,
         cloneArea,
         saveStatus,
+        lastSavedAt,
         serverForm,
         loading,
         createForm,
@@ -117,7 +122,7 @@ export function ScopingForm() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <SaveIndicator status={saveStatus} />
+                        <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
 
                         {isNew && (
                             <button
@@ -243,7 +248,7 @@ export function ScopingForm() {
                 {!isNew && (
                     <div className="sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/95 backdrop-blur border-t border-slate-200 flex items-center justify-between">
                         <div className="text-xs text-slate-400">
-                            <SaveIndicator status={saveStatus} />
+                            <SaveIndicator status={saveStatus} lastSavedAt={lastSavedAt} />
                         </div>
                         <div className="flex items-center gap-3">
                             <button

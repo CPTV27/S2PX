@@ -32,6 +32,14 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body,
+#root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 h1,
 h2,
 h3,
